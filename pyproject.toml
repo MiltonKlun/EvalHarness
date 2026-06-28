@@ -1,0 +1,45 @@
+[project]
+name = "llm-test-harness"
+version = "0.1.0"
+description = "A CI-integrated testing harness for a non-deterministic RAG agent: functional evals, adversarial red-team, and agent-reliability suites. Gemini generates, Claude judges."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Milton Ericklun" }]
+
+dependencies = [
+    "langchain>=0.3",
+    "langchain-google-genai>=2.0",
+    "langchain-anthropic>=0.3",
+    "langgraph>=0.2",
+    "langsmith>=0.1",
+    "deepeval>=2.0",
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "pre-commit>=3.8",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+# Sensible default rule set: pyflakes, pycodestyle, isort, bugbear, pyupgrade.
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["evals", "adversarial", "agent_tests", "meta_eval", "shared"]
+python_files = ["test_*.py", "*_test.py"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["shared", "app"]

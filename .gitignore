@@ -1,0 +1,37 @@
+# --- Secrets (never commit) ---
+.env
+*.env
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- uv ---
+# uv.lock IS committed (reproducible installs) — do not ignore it.
+
+# --- Vector store build artifacts (the persisted store IS committed; scratch is not) ---
+# See Phase 1: app/vectorstore/ is committed for reproducibility.
+*.tmp
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- LangSmith / local logs ---
+*.log
