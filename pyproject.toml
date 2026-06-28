@@ -9,8 +9,11 @@ authors = [{ name = "Milton Ericklun" }]
 
 dependencies = [
     "langchain>=0.3",
+    "langchain-text-splitters>=0.3",
+    "langchain-community>=0.3",
     "langchain-google-genai>=2.0",
     "langchain-anthropic>=0.3",
+    "faiss-cpu>=1.8",
     "langgraph>=0.2",
     "langsmith>=0.1",
     "deepeval>=2.0",
@@ -34,7 +37,7 @@ line-length = 100
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
-testpaths = ["evals", "adversarial", "agent_tests", "meta_eval", "shared"]
+testpaths = ["app", "evals", "adversarial", "agent_tests", "meta_eval", "shared"]
 python_files = ["test_*.py", "*_test.py"]
 
 [build-system]

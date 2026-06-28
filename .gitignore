@@ -22,8 +22,9 @@ env/
 # --- uv ---
 # uv.lock IS committed (reproducible installs) — do not ignore it.
 
-# --- Vector store build artifacts (the persisted store IS committed; scratch is not) ---
-# See Phase 1: app/vectorstore/ is committed for reproducibility.
+# --- Vector store ---
+# app/vectorstore/ IS committed (Phase 1: reproducible retrieval across machines/CI).
+# Do NOT ignore it. Scratch build artifacts only:
 *.tmp
 
 # --- OS / editor ---

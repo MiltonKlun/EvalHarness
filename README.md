@@ -43,6 +43,19 @@ make test
 
 `make help` lists all targets.
 
+### Building the vector store (one-time, needs a key)
+
+Retrieval runs against a committed FAISS store. It's built once from the corpus with a
+real `GOOGLE_API_KEY`, then committed so every clone/CI uses identical embeddings:
+
+```bash
+python -m app.ingest --stats   # preview chunking (no key needed)
+python -m app.ingest           # build + persist app/vectorstore/ (needs GOOGLE_API_KEY)
+python -m app.agent "Which drone can fly in 20 m/s wind?"   # run the agent end-to-end
+```
+
+The offline test suite (`make test`) needs no keys and no store.
+
 ## The two-tier CI idea (in one paragraph)
 
 The **fast tier** (every commit) does **record/replay**: it replays *recorded LLM

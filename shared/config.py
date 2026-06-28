@@ -29,6 +29,18 @@ GENERATOR_MODEL = os.getenv("GENERATOR_MODEL", "google_genai:gemini-3.5-flash")
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "anthropic:claude-haiku-4-5")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-2")
 
+# --- Retrieval / chunking (a drift surface — pin it, plan 1.2) ---------------------
+# Chunk size/overlap are documented, deliberate choices: small enough to be precise,
+# large enough that a single spec (e.g. one drone's stats) is not split mid-fact.
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "600"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "100"))
+# top-k is tuned, not left at a library default: the corpus is small and a question
+# rarely needs more than the few most-relevant passages.
+RETRIEVAL_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "4"))
+
+CORPUS_DIR = _REPO_ROOT / "app" / "corpus"
+VECTORSTORE_DIR = _REPO_ROOT / "app" / "vectorstore"
+
 # --- Decode modes (exercised by the determinism experiment, plan 1.3 / 2.6) --------
 # "max_pinned": pin every knob the API exposes (temp=0, top_p/top_k fixed, seed set)
 #               and then *measure* the residual variance — we do not claim determinism.
@@ -44,6 +56,22 @@ CACHE_DIR = _REPO_ROOT / "evals" / "cache"
 
 class ConfigError(RuntimeError):
     """Raised when required configuration is missing — fail loud, never silently."""
+
+
+def langsmith_enabled() -> bool:
+    """True only when tracing is switched on AND a key is present.
+
+    LangSmith is a *bonus* observability layer, never load-bearing: the harness runs
+    fully without it (plan's graceful-degradation rule). If tracing is requested but no
+    key is set, we disable it rather than letting LangChain error mid-run.
+    """
+    requested = os.getenv("LANGSMITH_TRACING", "").strip().lower() in {"1", "true", "yes", "on"}
+    has_key = bool(os.getenv("LANGSMITH_API_KEY"))
+    if requested and not has_key:
+        # Don't let LangChain attempt to export traces with no key.
+        os.environ["LANGSMITH_TRACING"] = "false"
+        return False
+    return requested and has_key
 
 
 def require(var: str) -> str:
