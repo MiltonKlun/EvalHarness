@@ -79,7 +79,24 @@ def run(question: str) -> str:
     config.langsmith_enabled()  # enable tracing if a key is present; harmless otherwise
     app = _build_graph()
     final = app.invoke({"messages": [HumanMessage(content=question)], "steps": 0})
-    return final["messages"][-1].content
+    return _text_of(final["messages"][-1])
+
+
+def _text_of(message: AnyMessage) -> str:
+    """Extract plain answer text from a message.
+
+    Newer Gemini models return ``content`` as a list of blocks (text + a thinking
+    signature) rather than a bare string; normalise both shapes to the answer text.
+    """
+    content = message.content
+    if isinstance(content, str):
+        return content
+    parts = [
+        block.get("text", "")
+        for block in content
+        if isinstance(block, dict) and block.get("type") == "text"
+    ]
+    return "\n".join(p for p in parts if p).strip()
 
 
 def main() -> None:
