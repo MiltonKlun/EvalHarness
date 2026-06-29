@@ -36,3 +36,7 @@ Thumbs.db
 
 # --- LangSmith / local logs ---
 *.log
+
+# --- DeepEval local telemetry/cache ---
+.deepeval/
+.deepeval-cache.json

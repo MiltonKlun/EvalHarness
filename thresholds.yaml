@@ -1,0 +1,22 @@
+# Metric pass/fail thresholds — versioned config (plan 2.2 + Threshold-strategy box).
+#
+# These are PROVISIONAL, hand-reasoned starting values. They are NOT yet calibrated:
+# Phase 6 (meta-eval) re-derives each cutoff against the hand-labeled gold set to
+# maximise agreement with human judgment, then overwrites the values here with a
+# reference to the calibration run. Until then, treat any number as a placeholder.
+#
+# Two kinds of gate (plan Threshold-strategy box, point 2):
+#   per_answer  — "is a single answer good enough?" (absolute gate, 0..1)
+#   regression  — "did this commit make the suite worse?" (baseline-relative)
+
+calibrated: false # flips to true once Phase 6 sets these from the gold set
+calibration_run: null # gold-set run id that produced the values (Phase 6)
+
+per_answer:
+  # DeepEval metrics return 0..1; pass if score >= threshold.
+  faithfulness: 0.7 # answer is grounded in retrieved context
+  answer_relevancy: 0.7 # answer stays on-topic for the question
+
+regression:
+  # Suite-mean must not drop more than this vs the committed baseline.
+  max_mean_drop: 0.1
