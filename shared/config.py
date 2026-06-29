@@ -21,11 +21,26 @@ from dotenv import load_dotenv
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(_REPO_ROOT / ".env")
 
+# Graceful-degradation guard, applied at IMPORT time (before LangChain reads these).
+# LangChain arms tracing from LANGSMITH_TRACING very early; if tracing is requested but
+# no key is present, neutralise it here so a missing/blank key can never cause noisy
+# 401 export errors mid-run. LangSmith is a bonus layer, never load-bearing.
+if os.getenv("LANGSMITH_TRACING", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+} and not os.getenv("LANGSMITH_API_KEY"):
+    os.environ["LANGSMITH_TRACING"] = "false"
+
 # --- Pinned model snapshots (see plan: "Pin exact model snapshot strings") ---------
 # Generator = Gemini (system under test). Judge = Claude (independent evaluator).
 # Claude Haiku 4.5 is the cheapest current Claude model, well-suited to LLM-as-judge
 # and a deliberately different family from the Gemini generator.
-GENERATOR_MODEL = os.getenv("GENERATOR_MODEL", "google_genai:gemini-3.5-flash")
+# gemini-2.5-flash chosen over the newer gemini-3.5-flash: the 3.x frontier model is
+# throttled to ~20 requests/day on the AI Studio free tier, whereas 2.5-flash gets
+# ~1,500/day — essential for a request-hungry eval harness. Revisit if billing is on.
+GENERATOR_MODEL = os.getenv("GENERATOR_MODEL", "google_genai:gemini-2.5-flash")
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "anthropic:claude-haiku-4-5")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-2")
 
@@ -59,19 +74,17 @@ class ConfigError(RuntimeError):
 
 
 def langsmith_enabled() -> bool:
-    """True only when tracing is switched on AND a key is present.
+    """Whether LangSmith tracing is active (tracing on AND a key present).
 
-    LangSmith is a *bonus* observability layer, never load-bearing: the harness runs
-    fully without it (plan's graceful-degradation rule). If tracing is requested but no
-    key is set, we disable it rather than letting LangChain error mid-run.
+    The actual neutralisation of a key-less ``LANGSMITH_TRACING=true`` happens at import
+    time above (before LangChain reads the flag); this is just the query.
     """
-    requested = os.getenv("LANGSMITH_TRACING", "").strip().lower() in {"1", "true", "yes", "on"}
-    has_key = bool(os.getenv("LANGSMITH_API_KEY"))
-    if requested and not has_key:
-        # Don't let LangChain attempt to export traces with no key.
-        os.environ["LANGSMITH_TRACING"] = "false"
-        return False
-    return requested and has_key
+    return os.getenv("LANGSMITH_TRACING", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    } and bool(os.getenv("LANGSMITH_API_KEY"))
 
 
 def require(var: str) -> str:
