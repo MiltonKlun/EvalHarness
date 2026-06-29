@@ -24,3 +24,9 @@ fmt: ## Auto-format + autofix with ruff
 
 test: ## Run the test suite (offline; no API keys needed)
 	uv run pytest -q
+
+eval: ## Live functional eval: real Gemini+Claude calls, records to evals/cache (needs keys + $)
+	LIVE_LLM=1 uv run pytest evals/test_functional.py -v
+
+eval-ci: ## Offline functional eval: replay recorded inputs, metrics run live (needs ANTHROPIC key)
+	uv run pytest evals/test_functional.py -v
