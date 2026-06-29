@@ -12,6 +12,8 @@ silent pass).
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from evals.dataset import load_cases
@@ -21,11 +23,20 @@ from shared import cache, config
 
 CASES = load_cases()
 
+# DETERMINISTIC_ONLY=1 runs only the keyless deterministic checks (fast CI tier);
+# default runs the full suite including the Claude-judged metrics.
+DETERMINISTIC_ONLY = os.getenv("DETERMINISTIC_ONLY", "0").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
 
 @pytest.mark.parametrize("case", CASES, ids=[c.id for c in CASES])
 def test_case(case):
     try:
-        report = evaluate_case(case)
+        report = evaluate_case(case, deterministic_only=DETERMINISTIC_ONLY)
     except cache.CacheMiss:
         pytest.skip(
             f"no recording for {case.id!r} and not in live mode — "

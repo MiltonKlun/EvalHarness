@@ -4,17 +4,22 @@ Loads the *committed* FAISS store (built by ``app.ingest``) and returns the top-
 relevant chunks, deduplicated, each carrying its source metadata. This clean boundary
 is what the eval suite asserts against (right chunks, right sources) — see plan 1.2.
 
-Loading the store still needs the embedding model to embed the *query*, so a live
-GOOGLE_API_KEY is required at retrieve time. (The corpus embeddings themselves are
-already baked into the committed store and are never recomputed.)
+Retrieval is routed through the SAME record/replay cache as LLM calls:
+  - LIVE_LLM=1 -> embed the query (needs GOOGLE_API_KEY) and record the chunks,
+  - default    -> replay recorded chunks from disk with NO key (this is what lets the
+                  fast CI tier run the deterministic eval checks completely keyless).
+
+A cache miss in replay mode is a hard error, exactly like the LLM cache — a new query
+that was never recorded must fail loudly, not silently reach for the network.
 """
 
 from __future__ import annotations
 
+import json
 from functools import lru_cache
 
 from app.schema import Chunk
-from shared import config
+from shared import cache, config
 
 
 @lru_cache(maxsize=1)
@@ -38,14 +43,8 @@ def _load_store():
     )
 
 
-def retrieve(query: str, k: int | None = None) -> list[Chunk]:
-    """Return the top-k most relevant corpus chunks for ``query``.
-
-    Chunks are deduplicated by text (FAISS can surface near-identical overlapping
-    passages) and carry their source filename + similarity score so downstream
-    groundedness/citation checks have what they need.
-    """
-    k = k or config.RETRIEVAL_TOP_K
+def _retrieve_live(query: str, k: int) -> list[Chunk]:
+    """Embed the query against the committed store (needs GOOGLE_API_KEY)."""
     store = _load_store()
     # FAISS returns (Document, distance); lower distance = more similar.
     hits = store.similarity_search_with_score(query, k=k)
@@ -65,3 +64,25 @@ def retrieve(query: str, k: int | None = None) -> list[Chunk]:
             )
         )
     return chunks
+
+
+def retrieve(query: str, k: int | None = None) -> list[Chunk]:
+    """Return the top-k most relevant corpus chunks for ``query``.
+
+    Routed through the record/replay cache: replay returns recorded chunks with no key;
+    live mode embeds + records. Chunks carry source + score for downstream checks.
+    """
+    k = k or config.RETRIEVAL_TOP_K
+    # The cache stores strings, so we (de)serialize the chunk list as JSON. The cache key
+    # uses a "retriever:<embedding-model>" pseudo-provider + params so it's distinct from
+    # LLM recordings and invalidates if the embedding model or k changes.
+    provider = f"retriever:{config.EMBEDDING_MODEL}"
+
+    def _compute() -> str:
+        chunks = _retrieve_live(query, k)
+        return json.dumps([{"text": c.text, "source": c.source, "score": c.score} for c in chunks])
+
+    raw = cache.cached_call(provider, query, {"k": k}, _compute)
+    return [
+        Chunk(text=d["text"], source=d["source"], score=d.get("score")) for d in json.loads(raw)
+    ]
