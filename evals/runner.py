@@ -16,11 +16,14 @@ from evals import metrics
 from evals.dataset import Case, load_thresholds
 
 
-def evaluate_case(case: Case, judge=None) -> metrics.CaseReport:
+def evaluate_case(case: Case, judge=None, deterministic_only: bool = False) -> metrics.CaseReport:
     """Evaluate one case end-to-end and return its report.
 
     ``judge`` is injected so tests can pass a fake; in real runs it defaults to the
     Claude judge (constructed lazily, only if an LLM metric actually runs).
+
+    ``deterministic_only`` skips the LLM-judge metrics entirely — used by the keyless
+    fast CI tier, which runs only the free deterministic checks (no Anthropic key).
     """
     from app.rag import answer as rag_answer
 
@@ -33,8 +36,8 @@ def evaluate_case(case: Case, judge=None) -> metrics.CaseReport:
     report.results.append(metrics.check_must_contain(case, ans))
     report.results.append(metrics.check_sources(case, sources))
 
-    # Layer 2: judge (answerable/multihop only).
-    if not case.is_unanswerable:
+    # Layer 2: judge (answerable/multihop only; skipped in deterministic-only mode).
+    if not deterministic_only and not case.is_unanswerable:
         if judge is None:
             from evals.judge import ClaudeJudge
 

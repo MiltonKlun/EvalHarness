@@ -1,0 +1,35 @@
+name: Judged eval (replay + Claude judge)
+
+# Middle tier — opt-in, NON-blocking. Replays the recorded Gemini answers (no Google
+# key, no drift) but runs the live Claude judge over them: faithfulness + relevancy.
+# This validates the metric/judge logic against the committed baseline.
+#
+# It is NOT on the every-PR blocking path on purpose: the Claude judge is non-deterministic
+# (a known finding — it once flaked on a correct answer) and costs money, so gating merges
+# on it would cause spurious red builds. Trigger it manually, or by labeling a PR `judged-eval`.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  judged:
+    # Only run on label events when the label is exactly `judged-eval` (manual dispatch always runs).
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.label.name == 'judged-eval' }}
+    runs-on: ubuntu-latest
+    env:
+      LIVE_LLM: "0" # replay recorded Gemini answers (no model drift, no Google key)
+      DETERMINISTIC_ONLY: "0" # run the Claude-judged metrics too
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }} # needed only if a retrieval cache miss occurs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv pip install -e ".[dev]"
+      - name: Functional eval — full suite (replay inputs, judge metrics live)
+        run: uv run pytest evals/test_functional.py -v

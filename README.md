@@ -1,5 +1,10 @@
 # LLM Test Harness
 
+<!-- Badges work once the repo is pushed to GitHub. Replace OWNER with your GitHub user. -->
+[![CI (fast)](https://github.com/OWNER/llm-test-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/llm-test-harness/actions/workflows/ci.yml)
+[![Live drift eval](https://github.com/OWNER/llm-test-harness/actions/workflows/live-eval.yml/badge.svg)](https://github.com/OWNER/llm-test-harness/actions/workflows/live-eval.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **CI that catches LLM regressions — for a non-deterministic RAG agent.**
 
 This project treats LLM behaviour as something you can *regression-test*, not just
@@ -7,9 +12,9 @@ eyeball. The system under test (a small RAG agent on **Google Gemini**) is delib
 boring — the **tests are the product**. The evaluator is **Anthropic Claude**, a
 *different model family* from the generator, so the judge never grades its own homework.
 
-> 🚧 **Status:** Phase 0 (repo, tooling & record/replay foundation) complete. RAG app,
-> eval suites, and CI land in later phases — see
-> [LLM_Eval_Harness_Build_Plan.md](LLM_Eval_Harness_Build_Plan.md).
+> 🚧 **Status:** Phases 0–3 complete (foundation, RAG app, functional eval suite,
+> two-tier+ CI). Adversarial, agent-reliability, and meta-eval suites land in later
+> phases — see [LLM_Eval_Harness_Build_Plan.md](LLM_Eval_Harness_Build_Plan.md).
 
 ## Why testing AI differs from traditional assertions
 
@@ -56,14 +61,28 @@ python -m app.agent "Which drone can fly in 20 m/s wind?"   # run the agent end-
 
 The offline test suite (`make test`) needs no keys and no store.
 
-## The two-tier CI idea (in one paragraph)
+## The CI philosophy: replay vs. live, and why the judge isn't a merge gate
 
-The **fast tier** (every commit) does **record/replay**: it replays *recorded LLM
-responses* from `evals/cache/` but re-runs the eval **metrics live** every time — so it
-genuinely tests the harness and app contract offline, for free, with no keys. Nothing is
-hardcoded; the recording is just an input fixture. The **live tier** (manual + weekly)
-makes real Gemini + Claude calls to catch *model drift* and surface real stochastic
-behaviour. See the build plan's "Two-tier CI" box for the full rationale.
+The hard problem in testing LLMs is that the same prompt gives different answers, the
+model drifts under you, and the *judge* is itself a non-deterministic, paid model. The CI
+is split into **three tiers** so each answers a different question with exactly the inputs
+it needs:
+
+| Tier | Trigger | Keys | What runs | What it proves |
+|---|---|---|---|---|
+| **Fast** (`ci.yml`) | every push / PR | **none** | lint + offline tests + the **deterministic** eval checks (abstention, citations, key-facts), replaying recorded Gemini answers *and* recorded retrieval | "my code/prompts didn't regress" — fast, free, blocking |
+| **Judged** (`judged-eval.yml`) | manual / PR label | Anthropic | + the Claude-judged faithfulness & relevancy metrics, over the same recordings | "the metric logic still holds" — **non-blocking on purpose** |
+| **Live drift** (`live-eval.yml`) | weekly cron + manual | Google + Anthropic | the full suite with **real** Gemini calls + the stochasticity/determinism probe | "the model didn't drift" — surfaces real variance |
+
+**Why the judge is deliberately off the blocking path:** the Claude judge is
+non-deterministic (it once flagged a perfectly correct answer as a fail) *and* costs
+money. Gating every merge on a flaky paid check would produce spurious red builds, so
+faithfulness/relevancy run in the opt-in judged tier and the scheduled live tier — never
+as a required PR check. That's intentional CI hygiene, not a gap.
+
+**Nothing is hardcoded.** The fast tier replays *recorded inputs* (both the Gemini answer
+and the retrieved chunks) but the deterministic metrics run live every time. The real,
+stochastic model is genuinely exercised — in the live tier, which is where drift belongs.
 
 ## License
 
