@@ -44,3 +44,6 @@ jobs:
 
       - name: Adversarial red-team — deterministic attacks (replay, keyless)
         run: uv run pytest adversarial/test_redteam.py -q
+
+      - name: Agent reliability — graph tests (scripted model, keyless)
+        run: uv run pytest agent_tests/ -q

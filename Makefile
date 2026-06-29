@@ -36,3 +36,6 @@ redteam: ## Adversarial red-team: replay recorded agent responses, grade live ->
 
 redteam-live: ## Adversarial red-team LIVE: real agent calls, records responses (needs keys + $)
 	LIVE_LLM=1 uv run python -m adversarial.run
+
+agent-tests: ## Agent-reliability suite: tests the graph (tool calls, loop safety, state, recovery). Keyless.
+	uv run pytest agent_tests/ -v

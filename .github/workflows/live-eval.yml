@@ -45,6 +45,10 @@ jobs:
         continue-on-error: true
         run: uv run python -m adversarial.run | tee redteam-report.txt
 
+      - name: Agent reliability — LIVE tool-choice check (real Gemini tool selection)
+        continue-on-error: true
+        run: uv run pytest agent_tests/test_live_tool_choice.py -v
+
       - name: Stochasticity / determinism probe
         continue-on-error: true
         run: |

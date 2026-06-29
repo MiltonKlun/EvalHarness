@@ -45,9 +45,18 @@ class AgentState(TypedDict):
     steps: int
 
 
-def _build_graph():
-    """Construct (but don't compile state into) the agent graph."""
-    model = llm.generator().bind_tools(TOOLS)
+def build_graph(model=None, tools=None):
+    """Construct and compile the agent graph.
+
+    ``model`` and ``tools`` are injectable so the Phase 5 reliability tests can drive the
+    graph with a scripted fake model + fake tools — exercising routing, the loop guard,
+    state, and failure recovery with NO API key. In production both default to the real
+    Gemini generator and the real tool set.
+    """
+    tools = tools if tools is not None else TOOLS
+    if model is None:
+        model = llm.generator()
+    model = model.bind_tools(tools)
 
     def agent_node(state: AgentState) -> dict:
         # On the first turn, prepend the system prompt.
@@ -67,18 +76,34 @@ def _build_graph():
 
     graph = StateGraph(AgentState)
     graph.add_node("agent", agent_node)
-    graph.add_node("tools", ToolNode(TOOLS))
+    # handle_tool_errors=True turns a raising tool into a ToolMessage the agent can recover
+    # from, instead of crashing the graph (failure-recovery property, plan 5.4 / VULN-driven).
+    graph.add_node("tools", ToolNode(tools, handle_tool_errors=True))
     graph.add_edge(START, "agent")
     graph.add_conditional_edges("agent", route, {"tools": "tools", END: END})
     graph.add_edge("tools", "agent")
     return graph.compile()
 
 
+# Backwards-compatible private alias (used by existing structural test).
+_build_graph = build_graph
+
+
+def invoke_agent(question: str, model=None, tools=None) -> AgentState:
+    """Run the agent and return the FULL final state (messages + steps).
+
+    Returning the whole state — not just the answer text — is what lets the reliability
+    suite assert on intermediate steps (which tools were called, with what args, how many
+    steps the loop took). This is the "test the graph, not just the final text" surface.
+    """
+    app = build_graph(model=model, tools=tools)
+    return app.invoke({"messages": [HumanMessage(content=question)], "steps": 0})
+
+
 def run(question: str) -> str:
     """Run the agent end-to-end and return the final answer text."""
     config.langsmith_enabled()  # enable tracing if a key is present; harmless otherwise
-    app = _build_graph()
-    final = app.invoke({"messages": [HumanMessage(content=question)], "steps": 0})
+    final = invoke_agent(question)
     return _text_of(final["messages"][-1])
 
 
