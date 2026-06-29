@@ -30,3 +30,9 @@ eval: ## Live functional eval: real Gemini+Claude calls, records to evals/cache 
 
 eval-ci: ## Offline functional eval: replay recorded inputs, metrics run live (needs ANTHROPIC key)
 	uv run pytest evals/test_functional.py -v
+
+redteam: ## Adversarial red-team: replay recorded agent responses, grade live -> graded report
+	uv run python -m adversarial.run
+
+redteam-live: ## Adversarial red-team LIVE: real agent calls, records responses (needs keys + $)
+	LIVE_LLM=1 uv run python -m adversarial.run
