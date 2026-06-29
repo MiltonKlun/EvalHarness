@@ -78,6 +78,35 @@ LangSmith key, if present, unlocks an additional "assert against the real tracin
 path; without it, that one test skips cleanly. The in-memory path is always the primary
 way to test — LangSmith is a bonus, never a dependency.
 
+## How good is the judge? (meta-eval — `make meta-eval`)
+
+We use Claude as an LLM judge for faithfulness/relevancy — so the obvious question is:
+**how do we know the judge is right?** We measure it against a **hand-labeled gold set** of
+20 (answer, context, verdict) cases, including deliberately tricky ones.
+
+Result on the current judge (Claude Haiku):
+
+| metric | value |
+|---|---|
+| accuracy vs. human labels | **80%** |
+| Cohen's κ (chance-corrected) | **0.60** (substantial) |
+| error direction | **4 false positives, 0 false negatives** |
+
+The errors aren't random — they're a **systematic lenient bias**: the judge marks an answer
+faithful when the added claim is *plausible or true in the real world*, even though it isn't
+in the provided context (e.g. "Aberdeen is in the UK" — true, but not in the documents). So
+**our faithfulness scores are an upper bound on true groundedness**, and we say so. Full
+write-up: [JUDGE-001 in FINDINGS.md](adversarial/FINDINGS.md).
+
+What we do about it: (1) the metric **threshold is calibrated** against this gold set, not
+guessed (see [thresholds.yaml](thresholds.yaml)); (2) a **0.05 margin** keeps us off the
+judge's noisy boundary; (3) the deterministic checks catch several of these independently;
+(4) **`make meta-eval` is also the judge-drift detector** — re-running it re-measures
+agreement, and if a future Claude version degrades, the suite goes red.
+
+This is the difference between "I used an eval framework" and "I measured my evaluator and
+know exactly where it's wrong."
+
 ## The CI philosophy: replay vs. live, and why the judge isn't a merge gate
 
 The hard problem in testing LLMs is that the same prompt gives different answers, the

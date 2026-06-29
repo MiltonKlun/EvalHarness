@@ -36,3 +36,6 @@ jobs:
 
       - name: Adversarial red-team — full suite (replay responses, toxicity judge live)
         run: uv run pytest adversarial/test_redteam.py -v
+
+      - name: Meta-eval — judge agreement vs human gold set (replay cached scores)
+        run: uv run pytest meta_eval/test_meta_eval.py -v

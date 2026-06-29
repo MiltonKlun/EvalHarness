@@ -39,3 +39,9 @@ redteam-live: ## Adversarial red-team LIVE: real agent calls, records responses 
 
 agent-tests: ## Agent-reliability suite: tests the graph (tool calls, loop safety, state, recovery). Keyless.
 	uv run pytest agent_tests/ -v
+
+meta-eval: ## Challenge the judge: replay cached judge scores, report agreement vs human gold set
+	uv run python -m meta_eval.run
+
+meta-eval-live: ## Meta-eval LIVE: real Claude judge over the gold set, re-records scores (needs ANTHROPIC key)
+	LIVE_LLM=1 uv run python -m meta_eval.run --live
