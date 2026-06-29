@@ -41,6 +41,10 @@ jobs:
         continue-on-error: true # quota 429s shouldn't fail the scheduled job
         run: uv run pytest evals/test_functional.py -v | tee live-eval-report.txt
 
+      - name: Adversarial red-team — LIVE (real attacks against the live agent)
+        continue-on-error: true
+        run: uv run python -m adversarial.run | tee redteam-report.txt
+
       - name: Stochasticity / determinism probe
         continue-on-error: true
         run: |
@@ -54,6 +58,7 @@ jobs:
           name: live-eval-reports
           path: |
             live-eval-report.txt
+            redteam-report.txt
             determinism-report.txt
 
       - name: Summary
@@ -63,6 +68,10 @@ jobs:
             echo "## Live drift eval"
             echo '```'
             tail -n 20 live-eval-report.txt 2>/dev/null || echo "(no functional report)"
+            echo '```'
+            echo "## Adversarial red-team"
+            echo '```'
+            tail -n 25 redteam-report.txt 2>/dev/null || echo "(no red-team report)"
             echo '```'
             echo "## Determinism probe"
             echo '```'

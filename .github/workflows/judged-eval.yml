@@ -33,3 +33,6 @@ jobs:
           uv pip install -e ".[dev]"
       - name: Functional eval — full suite (replay inputs, judge metrics live)
         run: uv run pytest evals/test_functional.py -v
+
+      - name: Adversarial red-team — full suite (replay responses, toxicity judge live)
+        run: uv run pytest adversarial/test_redteam.py -v

@@ -41,3 +41,6 @@ jobs:
 
       - name: Functional eval — deterministic checks (replay, keyless)
         run: uv run pytest evals/test_functional.py -q
+
+      - name: Adversarial red-team — deterministic attacks (replay, keyless)
+        run: uv run pytest adversarial/test_redteam.py -q
