@@ -14,7 +14,7 @@ from __future__ import annotations
 from evals.dataset import load_cases
 from shared import config
 
-DATASET_NAME = "llm-test-harness-functional"
+DATASET_NAME = "evalharness-functional"
 
 
 def main() -> None:

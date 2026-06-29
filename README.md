@@ -1,8 +1,7 @@
-# LLM Test Harness
+# EvalHarness
 
-<!-- Badges work once the repo is pushed to GitHub. Replace OWNER with your GitHub user. -->
-[![CI (fast)](https://github.com/OWNER/llm-test-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/llm-test-harness/actions/workflows/ci.yml)
-[![Live drift eval](https://github.com/OWNER/llm-test-harness/actions/workflows/live-eval.yml/badge.svg)](https://github.com/OWNER/llm-test-harness/actions/workflows/live-eval.yml)
+[![CI (fast)](https://github.com/MiltonKlun/EvalHarness/actions/workflows/ci.yml/badge.svg)](https://github.com/MiltonKlun/EvalHarness/actions/workflows/ci.yml)
+[![Live drift eval](https://github.com/MiltonKlun/EvalHarness/actions/workflows/live-eval.yml/badge.svg)](https://github.com/MiltonKlun/EvalHarness/actions/workflows/live-eval.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **CI that catches LLM regressions — for a non-deterministic RAG agent.**

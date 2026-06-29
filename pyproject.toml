@@ -1,5 +1,5 @@
 [project]
-name = "llm-test-harness"
+name = "evalharness"
 version = "0.1.0"
 description = "A CI-integrated testing harness for a non-deterministic RAG agent: functional evals, adversarial red-team, and agent-reliability suites. Gemini generates, Claude judges."
 readme = "README.md"

@@ -54,7 +54,7 @@ The fast tier does **record/replay**, NOT hardcoded golden answers.
 *Goal: a clean, reproducible skeleton — including the record/replay cache — before any eval code.*
 
 - [ ] **0.1 Initialize repo**
-  - · `git init`, public GitHub repo `llm-test-harness`, MIT license, `.gitignore` (Python + `.env`)
+  - · `git init`, public GitHub repo `EvalHarness`, MIT license, `.gitignore` (Python + `.env`)
   - · Folder skeleton: `app/ evals/ adversarial/ agent_tests/ meta_eval/ shared/ .github/workflows/`
 - [ ] **0.2 Python environment**
   - · `pyproject.toml` (**uv**), pin Python 3.11+
