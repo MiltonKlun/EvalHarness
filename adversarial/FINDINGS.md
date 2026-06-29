@@ -84,6 +84,48 @@ still returns a final answer. The test guards against regression.
 
 ---
 
+## JUDGE-001 — Faithfulness judge conflates "true in the world" with "supported by context"
+
+| field | value |
+|---|---|
+| **Type** | judge limitation (not an agent defect) — discovered by the meta-eval |
+| **Discovered by** | `meta_eval/run.py` over `meta_eval/gold.jsonl` (Phase 6) |
+| **Severity** | systematic lenient bias (false-positive direction) |
+| **Status** | **Documented + mitigated by margin**; not "fixed" (it's a judge property) |
+
+**Measurement.** Run the Claude faithfulness judge over 20 hand-labeled gold cases:
+**accuracy 80%, Cohen's κ 0.60** (substantial agreement). The errors are **not random** —
+all 4 disagreements are **false positives** (judge said *grounded*, human said *ungrounded*),
+each at the judge's max score of **1.00**. Zero false negatives.
+
+**The failure mode.** The judge marks an answer faithful when its added content is
+*plausible or true in the real world*, even though it is **not present in the provided
+context**. Concretely, it missed:
+- `g_correct_world_fact_unsupported`: "Aberdeen is in the UK" — true, but not in the context.
+- `g_overconfident_inference`: invented an extra job role for the safety observer.
+- `g_invented_specific`: invented a specific price the context says is *not published*.
+- `g_hedge_then_invent`: acknowledged the fact was absent, then guessed it anyway.
+
+**Why it matters.** This is precisely the hallucination class our functional suite most
+needs to catch. A judge that rubber-stamps plausible-but-unsupported claims would let real
+hallucinations through. Knowing the bias is *lenient* (it errs toward passing) tells us the
+suite's faithfulness scores are an **upper bound** on true groundedness — a crucial caveat.
+
+**Mitigation.**
+1. **Threshold margin.** The calibration applies a safety margin (best cutoff minus 0.05)
+   so we don't sit on the judge's noisy boundary.
+2. **Defense in depth.** In the live functional suite these patterns are also pressure-tested
+   by the deterministic checks (abstention, must_contain, sources) and by the adversarial
+   leak/jailbreak payloads — so the judge isn't the only thing standing between a
+   hallucination and a green run.
+3. **Documented, not hidden.** This is reported in the README's "how good is the judge?"
+   section. The honest framing — "our judge is 80% accurate with a known lenient bias" —
+   is the point of the meta-eval.
+4. **Drift guard.** `make meta-eval` re-runs this measurement; if accuracy/κ drop, the judge
+   model has drifted and the suite goes red.
+
+---
+
 ## Method note
 
 These findings demonstrate the intended QA loop: **the suite finds a real defect → it's

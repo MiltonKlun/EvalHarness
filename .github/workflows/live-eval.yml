@@ -49,6 +49,10 @@ jobs:
         continue-on-error: true
         run: uv run pytest agent_tests/test_live_tool_choice.py -v
 
+      - name: Meta-eval — LIVE judge-drift check (re-measure judge vs human gold set)
+        continue-on-error: true
+        run: uv run python -m meta_eval.run --live | tee meta-eval-report.txt
+
       - name: Stochasticity / determinism probe
         continue-on-error: true
         run: |
@@ -63,6 +67,7 @@ jobs:
           path: |
             live-eval-report.txt
             redteam-report.txt
+            meta-eval-report.txt
             determinism-report.txt
 
       - name: Summary

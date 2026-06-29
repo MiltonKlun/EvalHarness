@@ -1,0 +1,22 @@
+{
+  "g_clear_grounded": 1.0,
+  "g_clear_ungrounded": 0.0,
+  "g_paraphrase_grounded": 1.0,
+  "g_partial_grounded_one_wrong": 0.5,
+  "g_plausible_but_absent": 0.0,
+  "g_correct_world_fact_unsupported": 1.0,
+  "g_abstention_grounded": 1.0,
+  "g_subset_grounded": 1.0,
+  "g_number_swap": 0.0,
+  "g_grounded_with_citation": 1.0,
+  "g_overconfident_inference": 1.0,
+  "g_grounded_negation": 1.0,
+  "g_ungrounded_negation_flip": 0.0,
+  "g_grounded_unit_consistent": 1.0,
+  "g_invented_specific": 1.0,
+  "g_grounded_multi_context": 1.0,
+  "g_ungrounded_mixed_context": 0.0,
+  "g_grounded_exact": 1.0,
+  "g_hedge_then_invent": 1.0,
+  "g_grounded_two_sites": 1.0
+}
