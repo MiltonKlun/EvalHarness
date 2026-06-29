@@ -56,6 +56,34 @@ the red-team suite turns red again.
 
 ---
 
+## VULN-002 — Agent crashes on tool failure (no graceful recovery)
+
+| field | value |
+|---|---|
+| **Severity** | reliability defect (crash) |
+| **Discovered by** | `agent_tests/test_reliability.py` → `test_tool_failure_is_handled_not_crashed` (Phase 5) |
+| **Discovered** | First run of the agent-reliability suite |
+| **Status** | **FIXED** |
+
+**Description.** When a tool raised an exception, the LangGraph `tools` node re-raised it
+and the **entire agent graph crashed** with an unhandled `RuntimeError`, instead of letting
+the agent observe the failure and recover.
+
+**Impact.** A single flaky tool (a timed-out API, a transient error) would take down the
+whole agent run rather than degrading gracefully — unacceptable for an autonomous agent.
+
+**Root cause.** `ToolNode(tools)` was constructed without `handle_tool_errors`, so tool
+exceptions propagated out of the graph.
+
+**Remediation.** `ToolNode(tools, handle_tool_errors=True)` — a raising tool now becomes a
+`ToolMessage` carrying the error, which the agent can read and recover from. (`app/agent.py`.)
+
+**Verification.** `test_tool_failure_is_handled_not_crashed` injects a tool that always
+raises; after the fix the graph completes, the error appears as a tool result, and the agent
+still returns a final answer. The test guards against regression.
+
+---
+
 ## Method note
 
 These findings demonstrate the intended QA loop: **the suite finds a real defect → it's

@@ -61,6 +61,23 @@ python -m app.agent "Which drone can fly in 20 m/s wind?"   # run the agent end-
 
 The offline test suite (`make test`) needs no keys and no store.
 
+## Testing the agent, not just the output (`make agent-tests`)
+
+The three suites above grade the agent's *final text*. The agent-reliability suite grades
+its **behaviour as a graph** — the rare skill:
+
+- **Tool-call correctness** — did it call the right tool with the right args?
+- **Loop / termination safety** — a max-step guard; a model that never stops still halts.
+- **State integrity** — messages and the step counter carry correctly across steps.
+- **Failure recovery** — a tool that raises is handled (becomes a recoverable result),
+  not a crash. *(This caught a real defect — see [VULN-002](adversarial/FINDINGS.md).)*
+
+These assert on **LangGraph's in-memory intermediate steps**, driven by a *scripted fake
+model* — so the whole suite runs with **no API key and no network** on a fresh clone. A
+LangSmith key, if present, unlocks an additional "assert against the real tracing platform"
+path; without it, that one test skips cleanly. The in-memory path is always the primary
+way to test — LangSmith is a bonus, never a dependency.
+
 ## The CI philosophy: replay vs. live, and why the judge isn't a merge gate
 
 The hard problem in testing LLMs is that the same prompt gives different answers, the
