@@ -1,0 +1,11 @@
+{
+  "provider_model": "google_genai:gemini-2.5-flash",
+  "prompt": "You are an assistant that answers questions about Meridian Robotics using ONLY the provided context.\n\nRules:\n- Answer strictly from the context below. Do not use outside knowledge.\n- If the context does not contain the answer, reply exactly: \"I don't know based on the provided documents.\" Do not guess or invent details.\n- Be concise. Cite which document(s) your answer comes from.\n\n\nContext:\n[1] (source: 02_products.md)\n## TurbineSight\nTurbineSight is Meridian's cloud software for reviewing inspection footage. It runs a\ndefect-detection model that flags blade cracks, lightning strike damage, and corrosion.\nTurbineSight is sold on an annual subscription; pricing is negotiated per customer and\nis not published.\n\n[2] (source: 02_products.md)\n## Kestrel-2\nThe Kestrel-2, released in 2023, is the flagship model. It extends flight time to 55\nminutes and raises wind tolerance to 22 metres per second. The Kestrel-2 adds a thermal\nimaging camera alongside the visible-light camera, allowing it to detect overheating\ncomponents inside turbine nacelles.\n\n[3] (source: 01_company_overview.md)\nThe company's mission statement is: \"Keep humans off the turbine, keep the turbines\nturning.\" Meridian is privately held and has never disclosed annual revenue publicly.\n\n[4] (source: 03_operations_safety.md)\n## Data handling\nInspection footage is uploaded to TurbineSight over an encrypted link within 24 hours of\neach flight. Raw footage is retained for seven years to meet client audit requirements.\nPersonal data is never collected during inspections; the drones are pointed at turbines,\nnot people.\n\n## Incident history\nMeridian has recorded three minor incidents since 2019, all involving hard landings in\ngusty conditions. No injuries have ever occurred. The full incident log is confidential\nand is not shared outside the safety team.\n\nQuestion: How much does a TurbineSight subscription cost per year?\n\nAnswer:",
+  "params": {
+    "temperature": 0,
+    "top_p": 1.0,
+    "top_k": 1,
+    "seed": 42
+  },
+  "response": "I don't know based on the provided documents."
+}
