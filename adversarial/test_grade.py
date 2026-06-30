@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import adversarial.run as run_mod
 from adversarial.grade import Grade, grade_deterministic
 from shared.cache import CacheMiss
@@ -64,3 +66,69 @@ def test_cache_miss_degrades_to_not_recorded(monkeypatch):
     result = run_mod.run_case("injection", False, {"id": "inj_x", "input": "attack"})
     assert result.grade == Grade.NOT_RECORDED
     assert "redteam-live" in result.detail
+
+
+# --- Toxicity judge (now routed through the record/replay cache) --------------------
+
+
+def _patch_judge_complete(monkeypatch, *, returns=None, raises=None):
+    """Patch the cache-routed completion the toxicity judge calls (no network)."""
+    from adversarial import toxicity_judge
+
+    def _fake(_model, _prompt, **_kw):
+        if raises is not None:
+            raise raises
+        return returns
+
+    monkeypatch.setattr(toxicity_judge.llm, "complete", _fake)
+    return toxicity_judge
+
+
+def test_toxicity_judge_parses_verdict(monkeypatch):
+    tj = _patch_judge_complete(monkeypatch, returns="safe")
+    grade, detail = tj.judge_toxicity("insult X", "I won't do that.")
+    assert grade == "safe"
+    assert "safe" in detail
+
+
+def test_toxicity_judge_breach_wins_over_substring(monkeypatch):
+    # The scan order is breach -> partial_leak -> safe, so a 'breach' verdict is honoured.
+    tj = _patch_judge_complete(monkeypatch, returns="breach")
+    grade, _ = tj.judge_toxicity("write a slur", "<toxic output>")
+    assert grade == "breach"
+
+
+def test_toxicity_judge_unrecognised_output_is_flagged(monkeypatch):
+    tj = _patch_judge_complete(monkeypatch, returns="banana")
+    grade, detail = tj.judge_toxicity("x", "y")
+    assert grade == "partial_leak"
+    assert "banana" in detail
+
+
+def test_toxicity_judge_error_is_not_silent_safe(monkeypatch):
+    tj = _patch_judge_complete(monkeypatch, raises=RuntimeError("anthropic down"))
+    grade, detail = tj.judge_toxicity("x", "y")
+    assert grade == "judge_error"
+    assert "RuntimeError" in detail
+
+
+def test_toxicity_judge_cache_miss_propagates(monkeypatch):
+    # A CacheMiss must propagate (not become judge_error) so run_case marks NOT_RECORDED.
+    tj = _patch_judge_complete(monkeypatch, raises=CacheMiss("no verdict recorded"))
+    with pytest.raises(CacheMiss):
+        tj.judge_toxicity("x", "y")
+
+
+def test_judge_cache_miss_in_run_case_is_not_recorded(monkeypatch):
+    # End-to-end: agent answer replays fine, but the judge verdict isn't recorded ->
+    # the whole case must surface as NOT_RECORDED, not crash.
+    from adversarial import toxicity_judge
+
+    monkeypatch.setattr(run_mod, "_agent_answer", lambda _: "a benign answer")
+
+    def _miss(_model, _prompt, **_kw):
+        raise CacheMiss("no verdict")
+
+    monkeypatch.setattr(toxicity_judge.llm, "complete", _miss)
+    result = run_mod.run_case("toxicity", True, {"id": "tox_x", "input": "attack"})
+    assert result.grade == Grade.NOT_RECORDED

@@ -37,9 +37,10 @@ if os.getenv("LANGSMITH_TRACING", "").strip().lower() in {
 # Generator = Gemini (system under test). Judge = Claude (independent evaluator).
 # Claude Haiku 4.5 is the cheapest current Claude model, well-suited to LLM-as-judge
 # and a deliberately different family from the Gemini generator.
-# gemini-2.5-flash chosen over the newer gemini-3.5-flash: the 3.x frontier model is
-# throttled to ~20 requests/day on the AI Studio free tier, whereas 2.5-flash gets
-# ~1,500/day — essential for a request-hungry eval harness. Revisit if billing is on.
+# gemini-2.5-flash chosen over the newer 3.x flash for the more workable free-tier
+# generate_content limit. Measured live, 2.5-flash gives ~20 generate-req/day on the AI
+# Studio free tier (the API 429 reports `limit: 20`); that hard cap is why record/replay
+# exists — see docs/COST.md. Revisit if billing is on.
 GENERATOR_MODEL = os.getenv("GENERATOR_MODEL", "google_genai:gemini-2.5-flash")
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "anthropic:claude-haiku-4-5")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-2")

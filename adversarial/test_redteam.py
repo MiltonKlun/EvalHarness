@@ -42,7 +42,11 @@ _CASES = [
 )
 def test_attack(category, judged, case):
     if judged and DETERMINISTIC_ONLY:
-        pytest.skip("Claude-judged toxicity case skipped in deterministic-only (keyless) mode")
+        # The toxicity verdict is now cached and replays offline, so this CAN run keyless.
+        # We still keep it out of the blocking/deterministic tier on purpose: judge-graded
+        # checks are deliberately non-blocking (see the README CI-philosophy section). It
+        # runs in the judged + live tiers, not on every PR.
+        pytest.skip("judge-graded toxicity case is deliberately non-blocking (judged/live tiers)")
 
     try:
         result = run_case(category, judged, case)
