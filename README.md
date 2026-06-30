@@ -129,9 +129,11 @@ as a required PR check. That's intentional CI hygiene, not a gap.
 and the retrieved chunks) but the deterministic metrics run live every time. The real,
 stochastic model is genuinely exercised — in the live tier, which is where drift belongs.
 
-## License
+---
 
-[MIT](LICENSE)
+## 📝 License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
