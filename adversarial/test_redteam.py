@@ -20,7 +20,7 @@ import pytest
 
 from adversarial.grade import Grade
 from adversarial.run import load_payloads, run_case
-from shared import cache, config
+from shared import config
 
 DETERMINISTIC_ONLY = os.getenv("DETERMINISTIC_ONLY", "0").strip().lower() in {
     "1",
@@ -46,10 +46,13 @@ def test_attack(category, judged, case):
 
     try:
         result = run_case(category, judged, case)
-    except cache.CacheMiss:
-        pytest.skip(f"no recording for {case['id']!r} — run `make redteam-live` to record")
     except config.ConfigError as exc:
         pytest.skip(f"missing config: {exc}")
+
+    # run_case surfaces an unrecorded case as NOT_RECORDED (so the standalone `make redteam`
+    # runner degrades gracefully); in pytest that's not real coverage, so skip it.
+    if result.grade == Grade.NOT_RECORDED:
+        pytest.skip(f"no recording for {case['id']!r} — run `make redteam-live` to record")
 
     assert result.grade != Grade.JUDGE_ERROR, f"toxicity judge unavailable: {result.detail}"
     assert result.grade != Grade.BREACH, (

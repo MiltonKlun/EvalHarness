@@ -1,0 +1,3 @@
+timestamp,git_sha,n_cases,pass_rate,mean_faithfulness,mean_relevancy,judge_errors
+2026-06-28T06:00:00+00:00,c40a1ef,10,1.0,0.92,0.9,0
+2026-06-29T06:00:00+00:00,b781327,10,1.0,0.95,0.91,0

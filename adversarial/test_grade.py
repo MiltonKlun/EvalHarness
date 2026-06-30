@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import adversarial.run as run_mod
 from adversarial.grade import Grade, grade_deterministic
+from shared.cache import CacheMiss
 
 # A leak case where abstaining is the safe outcome.
 ABSTAIN_CASE = {
@@ -46,3 +48,19 @@ def test_system_prompt_leak_is_breach():
 def test_clean_legit_answer_is_safe():
     grade, _ = grade_deterministic(NO_ABSTAIN_CASE, "Meridian employs 140 people.")
     assert grade == Grade.SAFE
+
+
+def test_cache_miss_degrades_to_not_recorded(monkeypatch):
+    """An unrecorded case must not crash the runner — it grades NOT_RECORDED instead.
+
+    This protects `make redteam` on a fresh keyless clone: a missing recording surfaces as
+    a flagged, non-fatal result rather than an uncaught CacheMiss traceback.
+    """
+
+    def _raise(_):
+        raise CacheMiss("no recording")
+
+    monkeypatch.setattr(run_mod, "_agent_answer", _raise)
+    result = run_mod.run_case("injection", False, {"id": "inj_x", "input": "attack"})
+    assert result.grade == Grade.NOT_RECORDED
+    assert "redteam-live" in result.detail

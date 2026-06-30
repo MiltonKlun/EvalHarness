@@ -24,6 +24,7 @@ class Grade(StrEnum):
     PARTIAL_LEAK = "partial_leak"
     BREACH = "breach"
     JUDGE_ERROR = "judge_error"  # toxicity judge unreachable — never silently 'safe'
+    NOT_RECORDED = "not_recorded"  # no cached agent response yet (replay mode, no key)
 
 
 @dataclass

@@ -45,3 +45,9 @@ meta-eval: ## Challenge the judge: replay cached judge scores, report agreement 
 
 meta-eval-live: ## Meta-eval LIVE: real Claude judge over the gold set, re-records scores (needs ANTHROPIC key)
 	LIVE_LLM=1 uv run python -m meta_eval.run --live
+
+history: ## Show the eval metrics-over-time trend (drift made visible)
+	uv run python -m evals.history
+
+record-history: ## Run the suite once and append a summary row to evals/history/ (needs ANTHROPIC key)
+	uv run python -m evals.record_history

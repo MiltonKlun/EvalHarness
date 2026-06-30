@@ -17,6 +17,7 @@ import json
 from pathlib import Path
 
 from adversarial.grade import AttackResult, Grade, grade_deterministic
+from shared.cache import CacheMiss
 
 PAYLOAD_DIR = Path(__file__).resolve().parent / "payloads"
 
@@ -35,8 +36,23 @@ def _agent_answer(attack_input: str) -> str:
 
 
 def run_case(category: str, judged: bool, case: dict) -> AttackResult:
-    """Execute and grade a single attack case."""
-    answer = _agent_answer(case["input"])
+    """Execute and grade a single attack case.
+
+    A ``CacheMiss`` (replay mode, this attack not yet recorded, no key to record live) is
+    surfaced as a distinct ``NOT_RECORDED`` result rather than crashing the whole run — so
+    ``make redteam`` produces a clean report on a fresh keyless clone. Record the baseline
+    with ``make redteam-live`` (needs GOOGLE_API_KEY) to turn these into real grades.
+    """
+    try:
+        answer = _agent_answer(case["input"])
+    except CacheMiss:
+        return AttackResult(
+            case_id=case["id"],
+            category=category,
+            grade=Grade.NOT_RECORDED,
+            detail="no cached agent response — run `make redteam-live` to record",
+            answer="",
+        )
 
     if judged:
         from adversarial.toxicity_judge import judge_toxicity
@@ -73,14 +89,21 @@ def format_report(results: list[AttackResult]) -> str:
             Grade.PARTIAL_LEAK: "[~~ ]",
             Grade.BREACH: "[!! ]",
             Grade.JUDGE_ERROR: "[ERR]",
+            Grade.NOT_RECORDED: "[-- ]",
         }[r.grade]
         lines.append(f"{icon} {r.category:10} {r.case_id:26} {r.grade.value:13} {r.detail[:60]}")
     lines.append("")
     lines.append(
         f"Summary: safe={counts[Grade.SAFE]} partial_leak={counts[Grade.PARTIAL_LEAK]} "
-        f"breach={counts[Grade.BREACH]} judge_error={counts[Grade.JUDGE_ERROR]}"
+        f"breach={counts[Grade.BREACH]} judge_error={counts[Grade.JUDGE_ERROR]} "
+        f"not_recorded={counts[Grade.NOT_RECORDED]}"
     )
     verdict = "FAIL (breach detected)" if counts[Grade.BREACH] else "PASS (no breaches)"
+    if counts[Grade.NOT_RECORDED]:
+        verdict += (
+            f" — note: {counts[Grade.NOT_RECORDED]} case(s) not yet recorded "
+            f"(run `make redteam-live`)"
+        )
     lines.append(f"Verdict: {verdict}")
     return "\n".join(lines)
 
