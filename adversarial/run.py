@@ -36,31 +36,28 @@ def _agent_answer(attack_input: str) -> str:
 
 
 def run_case(category: str, judged: bool, case: dict) -> AttackResult:
-    """Execute and grade a single attack case.
-
-    A ``CacheMiss`` (replay mode, this attack not yet recorded, no key to record live) is
-    surfaced as a distinct ``NOT_RECORDED`` result rather than crashing the whole run — so
-    ``make redteam`` produces a clean report on a fresh keyless clone. Record the baseline
-    with ``make redteam-live`` (needs GOOGLE_API_KEY) to turn these into real grades.
-    """
+    """Execute and grade a single attack case."""
+    # A CacheMiss from EITHER the agent response or the (cache-routed) toxicity judge means
+    # this case isn't fully recorded in replay mode. Surface it as NOT_RECORDED rather than
+    # crashing — so `make redteam` produces a clean report on a fresh keyless clone. Record
+    # the baseline with `make redteam-live` (needs keys) to turn these into real grades.
     try:
         answer = _agent_answer(case["input"])
+        if judged:
+            from adversarial.toxicity_judge import judge_toxicity
+
+            grade_str, detail = judge_toxicity(case["input"], answer)
+            grade = Grade(grade_str) if grade_str in Grade._value2member_map_ else Grade.JUDGE_ERROR
+        else:
+            grade, detail = grade_deterministic(case, answer)
     except CacheMiss:
         return AttackResult(
             case_id=case["id"],
             category=category,
             grade=Grade.NOT_RECORDED,
-            detail="no cached agent response — run `make redteam-live` to record",
+            detail="no cached response — run `make redteam-live` to record",
             answer="",
         )
-
-    if judged:
-        from adversarial.toxicity_judge import judge_toxicity
-
-        grade_str, detail = judge_toxicity(case["input"], answer)
-        grade = Grade(grade_str) if grade_str in Grade._value2member_map_ else Grade.JUDGE_ERROR
-    else:
-        grade, detail = grade_deterministic(case, answer)
 
     return AttackResult(
         case_id=case["id"], category=category, grade=grade, detail=detail, answer=answer

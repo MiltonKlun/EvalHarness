@@ -9,7 +9,7 @@ free tiers of both providers. This doc shows the math so the budget is auditable
 
 | role | model (pinned) | why this one |
 |---|---|---|
-| Generator (system under test) | `google_genai:gemini-2.5-flash` | Free AI Studio tier gives **~1,500 requests/day**. The newer 3.x flash is throttled to ~20/day — unusable for a request-hungry eval harness. |
+| Generator (system under test) | `google_genai:gemini-2.5-flash` | Chosen over the 3.x flash because 2.5-flash has the more workable free-tier `generate_content` limit. **Measured live: ~20 generate-requests/day** on the AI Studio free tier (the API's own 429 reports `limit: 20`). That hard cap is exactly why record/replay matters — see below. |
 | Judge (evaluator) | `anthropic:claude-haiku-4-5` | Cheapest current Claude; a deliberately **different family** from the generator. |
 | Embeddings | `gemini-embedding-2` | Used **once** to build the committed FAISS store, then never again per-run. |
 
@@ -39,13 +39,20 @@ in the repo today:
 
 ## Against the free tiers
 
-- **Gemini 2.5-flash free tier ≈ 1,500 requests/day.** A full live run is **~58 generate
-  requests** — under **4%** of the daily cap. Even the weekly cron plus a few manual runs stays
-  comfortably free.
-- **Per-minute limits** are the more likely pinch than the daily cap; the suites are small and
-  serial, and the live job tolerates the occasional 429 (below).
+- **Gemini 2.5-flash free tier ≈ 20 generate-requests/day** (measured — the 429 reports
+  `limit: 20`). A *full* live run is **~58 generate requests**, so it **exceeds the daily cap**
+  and must be spread across days, or run with billing enabled. **This is the central cost fact
+  of the project, and the reason record/replay exists:** you pay for those ~58 stochastic calls
+  *once*, commit the recordings, and then re-run the (free, keyless) metric code over them on
+  every PR forever. The expensive tier is rare and quota-bounded by design; the cheap tier is
+  unlimited.
+- **In practice you don't run the whole suite live at once.** You record a baseline incrementally
+  (e.g. the 13-case adversarial re-record after a prompt change fits comfortably in two daily
+  windows), and the weekly live cron tolerates a partial run — its steps are `continue-on-error`,
+  so a mid-run 429 uploads what it got instead of failing.
 - **Claude Haiku** judge calls (~66/run) are a few cents at Haiku pricing — negligible, and the
-  judged work is opt-in / scheduled, never on the blocking PR path.
+  judged work is opt-in / scheduled, never on the blocking PR path. Claude quota was *not* the
+  binding constraint in any run; Gemini's 20/day always is.
 
 ## Behaviour at the limit (429 / quota)
 
@@ -62,14 +69,18 @@ gracefully, not a build failure:
 
 > ⚠️ **Re-recording cost.** Changing the system prompt invalidates every cached agent response
 > (the cache keys on the prompt), forcing a fresh re-record of the functional **and**
-> adversarial baselines (~37 generate calls). That's well within the daily cap in one sitting,
-> but it's the one operation that spends real quota deliberately — see the re-record note in
+> adversarial baselines (~37 generate calls). At ~20/day that **spans roughly two daily quota
+> windows** — which is exactly what happened for the VULN-001 hardening (verified cases first,
+> the remaining 13 on the next reset). It's the one operation that spends real Gemini quota
+> deliberately — see the re-record note in
 > [adversarial/FINDINGS.md](../adversarial/FINDINGS.md) (VULN-001).
 
 ## The bottom line
 
 - **Day-to-day development and every PR: $0, no keys** — fast CI and `make test` replay.
-- **A full live drift run: well under 4% of the free Gemini daily cap + cents of Claude.**
-- The design choice that makes this true is **record/replay**: pay for the stochastic model
-  once, then re-run the (free, deterministic) metric *code* over the recording as many times as
-  you like.
+- **A full live drift run (~58 Gemini calls) exceeds the free 20/day cap**, so it's run rarely,
+  incrementally, or with billing on — never on every commit. Claude judge cost is a few cents.
+- The design choice that makes the day-to-day free is **record/replay**: pay for the stochastic
+  model once (within the tight free quota), commit the recordings, then re-run the free,
+  deterministic metric *code* over them as many times as you like. The 20/day cap isn't a
+  footnote — it's the constraint the whole architecture is built around.
