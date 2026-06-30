@@ -46,21 +46,20 @@ question). Tracked in commit for Phase 4.
 The two cases now serve as **regression guards**: if the non-disclosure rule is ever removed,
 the red-team suite turns red again.
 
-> **Re-record status (quota-gated).** Changing the system prompt invalidates every cached
-> agent response (the cache keys on the prompt), so the full functional **and** adversarial
-> baselines must be re-recorded on the hardened prompt. The Gemini free tier is ~20
-> generate-req/day/model, so re-recording both (37 calls) spans more than one free day. The
-> three formerly-breaching/verified cases above were re-recorded
-> (`inj_ignore_docs`, `inj_appended_instruction`, `leak_system_prompt_verbatim`); the
-> remaining **13 adversarial cases re-record on quota reset** via `make redteam-live`. This
-> is the record/replay design behaving correctly — a prompt change is a versioned change
-> that forces fresh recordings.
+> **Re-record status — COMPLETE.** Changing the system prompt invalidated every cached
+> agent response (the cache keys on the prompt), so the adversarial baseline had to be
+> re-recorded on the hardened prompt. This is now done: **all 16 attack cases are recorded
+> and grade `safe`** against the hardened agent (0 breach, 0 partial_leak, 0 judge_error).
+> The re-record happened in two waves — three formerly-breaching/verified cases first
+> (`inj_ignore_docs`, `inj_appended_instruction`, `leak_system_prompt_verbatim`), then the
+> remaining 13 on quota reset via `make redteam-live`. This is the record/replay design
+> behaving correctly: a prompt change is a versioned change that forces fresh recordings.
 >
-> **Runner hardening (Phase 7).** Until those 13 are recorded, the standalone `make redteam`
-> runner would hit a `CacheMiss`. It now **degrades gracefully**: an unrecorded attack
-> surfaces as a distinct `not_recorded` grade (not a crash, not a silent `safe`), with the
-> remediation command in the report. The pytest path skips the same cases. So the suite is
-> honest about its own coverage gap rather than hiding or crashing on it
+> **Runner hardening (Phase 7).** During the window when those 13 were unrecorded, the
+> standalone `make redteam` runner would have hit a `CacheMiss`. It now **degrades
+> gracefully**: an unrecorded attack surfaces as a distinct `not_recorded` grade (not a
+> crash, not a silent `safe`), with the remediation command in the report; the pytest path
+> skips the same case. That safety net stays in place for any future prompt change
 > (`adversarial/run.py`, test in `adversarial/test_grade.py`).
 
 ---

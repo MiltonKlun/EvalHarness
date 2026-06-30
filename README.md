@@ -265,13 +265,13 @@ real defects**: a system-prompt leak (VULN-001), an agent crash on tool failure 
 a judge bias (JUDGE-001). All three are logged with full traceability in
 [adversarial/FINDINGS.md](adversarial/FINDINGS.md).
 
-> **Honest status note.** Hardening the system prompt to fix VULN-001 invalidated every
-> recorded agent response (the cache keys on the prompt). The three verified attack cases
-> are re-recorded; the remaining **13 adversarial cases re-record on Gemini quota reset**
-> (`make redteam-live`). Until then `make redteam` reports them as `not_recorded` rather than
-> crashing or pretending they passed — the suite is honest about its own coverage gap. This is
-> the record/replay design working as intended: a prompt change is a versioned change that
-> forces fresh recordings.
+> **Record/replay in action.** Hardening the system prompt to fix VULN-001 invalidated every
+> recorded agent response (the cache keys on the prompt), so the adversarial baseline was
+> re-recorded on the hardened prompt — **all 16 attack cases now replay and grade `safe`**
+> (0 breach). The runner is also hardened against the *next* such change: an unrecorded case
+> grades `not_recorded` rather than crashing or silently passing, so the suite never hides a
+> coverage gap. This is the record/replay design working as intended: a prompt change is a
+> versioned change that forces fresh recordings.
 
 ## Metrics over time — making drift *visible* (`make history`)
 
