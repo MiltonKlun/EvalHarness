@@ -11,22 +11,122 @@ eyeball. The system under test (a small RAG agent on **Google Gemini**) is delib
 boring — the **tests are the product**. The evaluator is **Anthropic Claude**, a
 *different model family* from the generator, so the judge never grades its own homework.
 
-> 🚧 **Status:** Phases 0–3 complete (foundation, RAG app, functional eval suite,
-> two-tier+ CI). Adversarial, agent-reliability, and meta-eval suites land in later
-> phases — see [LLM_Eval_Harness_Build_Plan.md](LLM_Eval_Harness_Build_Plan.md).
+> 🚧 **Status:** Phases 0–6 complete — foundation, RAG app, functional eval suite,
+> three-tier CI, adversarial red-team, agent-reliability, and meta-eval. Phase 7
+> (narrative & ship polish) in progress — see
+> [LLM_Eval_Harness_Build_Plan.md](LLM_Eval_Harness_Build_Plan.md).
 
 ## Why testing AI differs from traditional assertions
 
-*(placeholder — expanded in Phase 7)* Traditional tests assert exact outputs. LLM
-outputs are stochastic: the same prompt at `temperature=0` can still vary, hallucinate,
-or drift as the model changes underneath you. This harness measures *fuzzy* qualities
-(groundedness, relevancy, hallucination, safety) with calibrated thresholds, and
-separates "did my code regress?" from "did the model drift?" via a two-tier CI design.
+A traditional unit test is a fixed point: `assert add(2, 2) == 4`. Same input, same
+output, forever — green or red, no middle ground. Testing an LLM breaks every assumption
+that line rests on:
+
+- **The output isn't fixed.** The same prompt can give a different answer on the next
+  call. `temperature=0` doesn't save you — this repo *measures* it: even with every knob
+  pinned (`temperature=0` + `seed` + `top_p`/`top_k`), Gemini's output still varies. We
+  don't claim determinism we can't deliver; we quantify the residual variance instead
+  (`python -m evals.determinism_experiment`).
+- **"Correct" isn't exact-match.** There's no single right string for *"Which drone can
+  fly in 20 m/s wind?"*. What you actually care about is *fuzzy* qualities — is the answer
+  **grounded** in the source documents, **relevant**, free of **hallucination**, and
+  **safe** under attack. You can't `==` those.
+- **The thing under test drifts.** The model changes underneath you. A prompt that passed
+  last month can silently regress when the provider ships a new snapshot — so "did *my
+  code* regress?" and "did *the model* drift?" are two different questions that need two
+  different answers.
+- **The grader is itself a fallible model.** Measuring fuzzy qualities means using an LLM
+  as a judge — which is *also* non-deterministic, also drifts, and can be wrong. An eval
+  harness that trusts its judge blindly is just moving the problem.
+
+This harness confronts all four head-on. It measures fuzzy qualities with **thresholds
+calibrated against a hand-labeled gold set** (not vibes); it splits CI into **three tiers**
+so "my code regressed" and "the model drifted" never get conflated; and it **measures its
+own judge** (80% accurate, with a documented lenient bias — see below) instead of trusting
+it. The system under test is a deliberately boring RAG agent. The interesting engineering
+is in how you *test* something that won't hold still.
 
 ## Architecture
 
-*(diagram placeholder — added in Phase 7: app under test (Gemini) ← suites ← Claude
-judge ← two-tier CI)*
+The system under test is a Gemini RAG agent. Four test suites probe it, an
+*independent* Claude judge grades the fuzzy metrics, and three CI tiers run different
+slices of that work depending on what question they answer.
+
+```mermaid
+flowchart TB
+    subgraph SUT["System under test (deliberately boring)"]
+        direction LR
+        Q["Question"] --> RET["Retriever<br/>(committed FAISS store)"]
+        RET --> RAG["RAG agent<br/>(LangGraph + Gemini)"]
+        RAG --> OUT["answer + contexts + sources"]
+    end
+
+    subgraph SUITES["Test suites"]
+        direction TB
+        S1["1 · Functional evals<br/>grounded? relevant? abstains?"]
+        S2["2 · Adversarial red-team<br/>injection / jailbreak / leak / toxicity<br/>graded safe / partial / breach"]
+        S3["3 · Agent reliability<br/>tool calls, loop safety,<br/>state, failure recovery"]
+        S4["4 · Meta-eval<br/>how good is the judge?"]
+    end
+
+    OUT --> S1 & S2 & S3
+
+    subgraph JUDGE["Independent evaluator"]
+        CLAUDE["Claude judge<br/>(different model family)"]
+    end
+
+    S1 -. "faithfulness / relevancy" .-> CLAUDE
+    S2 -. "toxicity grading" .-> CLAUDE
+    GOLD["Hand-labeled gold set"] --> S4
+    S4 -- "measures + calibrates" --> CLAUDE
+    S4 -- "writes calibrated cutoffs" --> TH["thresholds.yaml"]
+    TH -. "pass/fail lines" .-> S1
+
+    CACHE[("Record/replay cache<br/>raw LLM responses")]
+    RAG <-. "record (live) / replay (CI)" .-> CACHE
+    CLAUDE <-. "record (live) / replay (CI)" .-> CACHE
+```
+
+**The independence properties that make the numbers trustworthy** are visible in the
+diagram: the **generator is Gemini, the judge is Claude** (different families — the judge
+never grades its own homework); the eval dataset and attack payloads are **hand-authored**,
+not model-generated (the system can't teach to its own test); and the **gold set calibrates
+the thresholds** so the pass/fail lines are defended, not guessed.
+
+### How the three CI tiers use it
+
+Each tier runs a different slice of the same suites, with exactly the keys it needs:
+
+```mermaid
+flowchart LR
+    PUSH["push / PR"] --> FAST
+    LABEL["manual / PR label"] --> JUDGED
+    CRON["weekly cron + manual"] --> LIVE
+
+    subgraph FAST["⚡ Fast — ci.yml"]
+        F1["lint + offline tests"]
+        F2["deterministic eval checks<br/>(abstention, citations, key-facts)"]
+        F3["replays recorded Gemini<br/>+ recorded retrieval"]
+    end
+
+    subgraph JUDGED["⚖️ Judged — judged-eval.yml"]
+        J1["+ Claude faithfulness<br/>& relevancy, over recordings"]
+    end
+
+    subgraph LIVE["🌐 Live drift — live-eval.yml"]
+        L1["real Gemini calls"]
+        L2["determinism / variance probe"]
+    end
+
+    FAST   -->|"no keys · blocking"| PF["'my code didn't regress'"]
+    JUDGED -->|"Anthropic key · NON-blocking"| PJ["'the metric logic still holds'"]
+    LIVE   -->|"Google + Anthropic · scheduled"| PL["'the model didn't drift'"]
+```
+
+The "why" behind these tiers — especially why the paid, flaky Claude judge is deliberately
+kept **off the blocking merge path** — is in
+[The CI philosophy](#the-ci-philosophy-replay-vs-live-and-why-the-judge-isnt-a-merge-gate)
+below.
 
 ## Quickstart
 
@@ -105,6 +205,94 @@ agreement, and if a future Claude version degrades, the suite goes red.
 
 This is the difference between "I used an eval framework" and "I measured my evaluator and
 know exactly where it's wrong."
+
+## `temperature=0` ≠ determinism (the stochasticity finding)
+
+A common assumption is that `temperature=0` makes an LLM deterministic, so you could just
+snapshot one "golden" answer and assert exact-match. **It doesn't, and you can't** — this
+repo *measures* the gap instead of assuming it away.
+
+The experiment (`python -m evals.determinism_experiment`) samples a representative subset of
+questions **N times** in two decode modes, bypassing the cache so it sees real variance:
+
+| mode | knobs pinned |
+|---|---|
+| `near_det` | `temperature=0` only |
+| `max_pinned` | `temperature=0` **+** `top_p`/`top_k` fixed **+** `seed` set — every knob the API exposes |
+
+The honest framing, baked into the design: Gemini *does* accept a `seed`, but **Google's own
+docs call it best-effort** — a `temperature=0` response is only "*mostly* deterministic." So
+we **don't claim to have forced determinism**. We pin every available knob and then report the
+residual variance. Any case that comes back with *distinct* outputs under `max_pinned` is
+direct evidence that **`temperature=0` + `seed` still isn't deterministic** on this model.
+
+Why this matters for the harness as a whole:
+
+- It's **why exact-match assertions are the wrong tool** — and why the suite grades *fuzzy*
+  qualities (groundedness, relevancy) instead.
+- It's **why a single case dipping below a threshold on one sample isn't automatically a
+  regression** — the thresholds use a baseline-relative regression gate
+  ([thresholds.yaml](thresholds.yaml) → `max_mean_drop`), sized with the variance this
+  experiment surfaces, not a brittle per-call line.
+- It's **why drift detection lives in the live tier** (where this probe runs), not in the
+  fast PR gate — you can't tell drift from noise without first measuring the noise floor.
+
+This runs in the live tier only ([live-eval.yml](.github/workflows/live-eval.yml)); it needs
+real calls, so it never runs in keyless CI.
+
+## A caught regression, end to end (`python -m evals.regression_demo`)
+
+A test suite is only as good as its ability to *go red when something breaks*. This repo ships
+a runnable demonstration of exactly that — the eval suite catching a grounding regression.
+
+**The quota-free version** (default) feeds the live Claude faithfulness metric two answers over
+the same context — one grounded, one deliberately hallucinated (*"the Kestrel-2 can fly for 90
+minutes … and has a built-in defibrillator"*) — and shows the metric **passing the grounded
+answer and failing the hallucinated one**:
+
+```text
+  grounded answer   -> faithfulness 1.00  (expected high, >= 0.7)
+  REGRESSED answer  -> faithfulness 0.00  (expected LOW,  < 0.7)
+  PASS: the suite CAUGHT the regression — the ungrounded answer scored below threshold.
+```
+
+**The real version** (`--mode prompt-break`, needs Gemini quota) prints the steps to reproduce
+the canonical regression: branch, delete the grounding line from `app/rag.SYSTEM_PROMPT`,
+`LIVE_LLM=1 make eval` to re-record, and watch faithfulness collapse on *real* model output.
+
+This isn't hypothetical for this project — the same loop **found and drove the fix for three
+real defects**: a system-prompt leak (VULN-001), an agent crash on tool failure (VULN-002), and
+a judge bias (JUDGE-001). All three are logged with full traceability in
+[adversarial/FINDINGS.md](adversarial/FINDINGS.md).
+
+> **Honest status note.** Hardening the system prompt to fix VULN-001 invalidated every
+> recorded agent response (the cache keys on the prompt). The three verified attack cases
+> are re-recorded; the remaining **13 adversarial cases re-record on Gemini quota reset**
+> (`make redteam-live`). Until then `make redteam` reports them as `not_recorded` rather than
+> crashing or pretending they passed — the suite is honest about its own coverage gap. This is
+> the record/replay design working as intended: a prompt change is a versioned change that
+> forces fresh recordings.
+
+## Metrics over time — making drift *visible* (`make history`)
+
+A pass/fail tells you the state today. It won't show a metric **slowly sliding** toward its
+threshold over weeks — exactly the signature of model drift. So each live run appends one
+summary row (suite-mean faithfulness, relevancy, pass-rate, judge-error count, git SHA) to a
+committed CSV ([`evals/history/runs.csv`](evals/history/runs.csv)), and `make history` renders
+the trend:
+
+```text
+timestamp            sha        pass  faith  relev jerr
+--------------------------------------------------------
+2026-06-28T06:00:00  c40a1ef     1.0   0.92    0.9    0
+2026-06-29T06:00:00  b781327     1.0   0.95   0.91    0
+--------------------------------------------------------
+faithfulness trend: ▁█
+```
+
+The file is plain CSV on purpose — it **diffs cleanly in git**, so a drift shows up in a pull
+request the same way a code change does, and the history is append-only (never rewritten). The
+live tier records a row automatically; the seed rows above are illustrative.
 
 ## The CI philosophy: replay vs. live, and why the judge isn't a merge gate
 

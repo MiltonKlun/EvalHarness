@@ -59,6 +59,11 @@ jobs:
           uv run python -m evals.determinism_experiment \
             --samples "${{ github.event.inputs.samples || '3' }}" | tee determinism-report.txt
 
+      - name: Record metrics-over-time row (drift made visible)
+        continue-on-error: true
+        run: |
+          uv run python -m evals.record_history | tee history-report.txt
+
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,6 +74,8 @@ jobs:
             redteam-report.txt
             meta-eval-report.txt
             determinism-report.txt
+            history-report.txt
+            evals/history/runs.csv
 
       - name: Summary
         if: always()
