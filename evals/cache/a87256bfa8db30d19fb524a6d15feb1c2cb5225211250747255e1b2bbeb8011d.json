@@ -7,5 +7,5 @@
     "top_k": 1,
     "seed": 42
   },
-  "response": "The Kestrel-1 has a flight time of 38 minutes on a single charge. (source: 02_products.md)"
+  "response": "The flight time of the Kestrel-1 is 38 minutes on a single charge. (source: 02_products.md)"
 }
