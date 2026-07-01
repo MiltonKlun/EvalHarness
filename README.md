@@ -160,6 +160,16 @@ python -m app.agent "Which drone can fly in 20 m/s wind?"   # run the agent end-
 
 The offline test suite (`make test`) needs no keys and no store.
 
+> **Note on the functional baseline (record/replay in action).** The VULN-001 prompt
+> hardening invalidated every cached response (the cache keys on the prompt), so the
+> functional recordings are being refreshed against the hardened prompt. Because the Gemini
+> free tier is ~20 generate-requests/day, this spans a few daily windows: **7 of the 21
+> functional cases are re-recorded and pass**; the remaining 14 re-record on quota reset via
+> `LIVE_LLM=1 make eval`. Un-recorded cases **skip cleanly offline — they never falsely
+> pass** — and the judged/live CI tiers record on run. This is the intended behaviour of a
+> keyed, quota-bounded record/replay design, not a failure. (The adversarial baseline, 16/16,
+> is already fully re-recorded.)
+
 ## Testing the agent, not just the output (`make agent-tests`)
 
 The three suites above grade the agent's *final text*. The agent-reliability suite grades
