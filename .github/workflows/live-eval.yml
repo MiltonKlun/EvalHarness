@@ -39,7 +39,7 @@ jobs:
       - name: Functional eval — LIVE (real Gemini + Claude; detects drift)
         id: liveeval
         continue-on-error: true # quota 429s shouldn't fail the scheduled job
-        run: uv run pytest evals/test_functional.py -v | tee live-eval-report.txt
+        run: uv run python -m pytest evals/test_functional.py -v | tee live-eval-report.txt
 
       - name: Adversarial red-team — LIVE (real attacks against the live agent)
         continue-on-error: true
@@ -47,7 +47,7 @@ jobs:
 
       - name: Agent reliability — LIVE tool-choice check (real Gemini tool selection)
         continue-on-error: true
-        run: uv run pytest agent_tests/test_live_tool_choice.py -v
+        run: uv run python -m pytest agent_tests/test_live_tool_choice.py -v
 
       - name: Meta-eval — LIVE judge-drift check (re-measure judge vs human gold set)
         continue-on-error: true

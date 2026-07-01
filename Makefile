@@ -23,13 +23,13 @@ fmt: ## Auto-format + autofix with ruff
 	uv run ruff check --fix .
 
 test: ## Run the test suite (offline; no API keys needed)
-	uv run pytest -q
+	uv run python -m pytest -q
 
 eval: ## Live functional eval: real Gemini+Claude calls, records to evals/cache (needs keys + $)
-	LIVE_LLM=1 uv run pytest evals/test_functional.py -v
+	LIVE_LLM=1 uv run python -m pytest evals/test_functional.py -v
 
 eval-ci: ## Offline functional eval: replay recorded inputs, metrics run live (needs ANTHROPIC key)
-	uv run pytest evals/test_functional.py -v
+	uv run python -m pytest evals/test_functional.py -v
 
 redteam: ## Adversarial red-team: replay recorded agent responses, grade live -> graded report
 	uv run python -m adversarial.run
@@ -38,7 +38,7 @@ redteam-live: ## Adversarial red-team LIVE: real agent calls, records responses 
 	LIVE_LLM=1 uv run python -m adversarial.run
 
 agent-tests: ## Agent-reliability suite: tests the graph (tool calls, loop safety, state, recovery). Keyless.
-	uv run pytest agent_tests/ -v
+	uv run python -m pytest agent_tests/ -v
 
 meta-eval: ## Challenge the judge: replay cached judge scores, report agreement vs human gold set
 	uv run python -m meta_eval.run
