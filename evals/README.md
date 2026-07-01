@@ -16,14 +16,22 @@ dataset independent of the generator — the same independence principle as usin
 
 | type | count | pass condition |
 |---|---|---|
-| `answerable` | 11 | answer is grounded, relevant, cites the expected source, and contains the key fact(s) in `must_contain` |
+| `answerable` | 12 | answer is grounded, relevant, cites the expected source, and contains the key fact(s) in `must_contain` |
 | `multihop` | 4 | grounded answer that combines **all** the facts in `hop_facts` (not just one); `must_contain` holds |
-| `unanswerable` | 6 | model **abstains** (the fixed "I don't know…" string) and does **not** invent a fact |
+| `unanswerable` | 5 | model **abstains** (the fixed "I don't know…" string) and does **not** invent a fact |
 
 **Ambiguous cases are deliberately excluded.** A question with no objective correct
 answer has no defensible pass condition — scoring it is noise, and a judge's verdict on
 it can't be validated against ground truth. Excluding them (and saying so) is itself a
 sign of eval discipline; we only test what we can grade.
+
+**"Withheld" is answerable, not unanswerable.** `answerable_pricing_policy` asks the
+subscription price; the corpus explicitly states pricing "is negotiated per customer and is
+not published." The correct behaviour is to *report that grounded policy*, not to abstain —
+so it's an `answerable` case, distinct from the truly `unanswerable` ones where the corpus
+says nothing at all (revenue, salary, incident dates). This distinction — "the docs state X
+is withheld" vs. "the docs don't address X" — was a real fix surfaced when a live re-record
+caught the case mislabeled `abstain`.
 
 ## Fields
 

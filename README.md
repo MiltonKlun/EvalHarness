@@ -161,14 +161,14 @@ python -m app.agent "Which drone can fly in 20 m/s wind?"   # run the agent end-
 The offline test suite (`make test`) needs no keys and no store.
 
 > **Note on the functional baseline (record/replay in action).** The VULN-001 prompt
-> hardening invalidated every cached response (the cache keys on the prompt), so the
-> functional recordings are being refreshed against the hardened prompt. Because the Gemini
-> free tier is ~20 generate-requests/day, this spans a few daily windows: **7 of the 21
-> functional cases are re-recorded and pass**; the remaining 14 re-record on quota reset via
-> `LIVE_LLM=1 make eval`. Un-recorded cases **skip cleanly offline — they never falsely
-> pass** — and the judged/live CI tiers record on run. This is the intended behaviour of a
-> keyed, quota-bounded record/replay design, not a failure. (The adversarial baseline, 16/16,
-> is already fully re-recorded.)
+> hardening invalidated every cached response (the cache keys on the prompt). Because the
+> Gemini free tier is ~20 generate-requests/day, refreshing the baseline spanned a few daily
+> windows — a concrete illustration of the record/replay + quota design. It's now complete:
+> **all 21 functional cases replay offline and pass** (adversarial is 16/16). Re-recording
+> also surfaced two genuinely-faulty pass conditions — the agent had answered correctly but
+> the *test* was wrong (a mislabeled "unanswerable" case the corpus actually answers, and a
+> multi-hop case asserting city names when the question asked for countries). Both were fixed
+> to assert the truth, not hardcoded to pass — the eval suite catching bugs in *itself*.
 
 ## Testing the agent, not just the output (`make agent-tests`)
 
