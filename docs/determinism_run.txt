@@ -1,0 +1,20 @@
+# Determinism experiment — run log
+
+Placeholder. A clean, complete run goes here (committed as raw evidence for the README's
+"temperature=0 ≠ determinism" section).
+
+Command:
+    python -m evals.determinism_experiment --samples 5      # billing on: full speed
+    python -m evals.determinism_experiment --samples 3 --delay 13   # free tier: paced under 5 RPM
+
+## Status: pending one clean run
+
+Attempts on 2026-07-02 were cut short by the Gemini free-tier caps (first the per-minute
+5 RPM cap, then the daily 20-request cap once the day's budget was spent on other
+re-records). The experiment was hardened in response (configurable `--delay`, default 13s,
+to stay under 5 RPM), but a full run needs a fresh daily budget or billing enabled.
+
+Partial observations so far (both runs, all COMPLETED samples): every sample was
+**IDENTICAL** within its (question, mode) — no variance surfaced yet on this small factual
+subset. This is preliminary and NOT the committed finding; the README will cite only a
+single clean, complete run.
