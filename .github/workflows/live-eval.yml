@@ -97,3 +97,15 @@ jobs:
             tail -n 30 determinism-report.txt 2>/dev/null || echo "(no determinism report)"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guard — the run must have produced results
+        # Every eval step is continue-on-error so a partial quota run still uploads what it
+        # got. But a run where EVERYTHING silently failed must not report green: if the
+        # functional live report is missing or empty, no real work happened — fail loudly
+        # instead of a green build with an empty artifact.
+        run: |
+          if [ ! -s live-eval-report.txt ]; then
+            echo "::error::live-eval-report.txt is missing or empty — the live run produced no results (check secrets/quota)."
+            exit 1
+          fi
+          echo "Live run produced results ($(wc -l < live-eval-report.txt) lines)."
