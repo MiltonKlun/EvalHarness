@@ -103,12 +103,38 @@ def check_sources(case: Case, sources_cited: list[str]) -> MetricResult:
 # --- Layer 2: LLM-as-judge metrics (Claude), with judge-failure handling -----------
 
 
+def _find_in_chain(exc: BaseException, types: tuple[type, ...]) -> BaseException | None:
+    """Walk an exception's __cause__/__context__ chain for an instance of ``types``.
+
+    DeepEval catches errors raised inside the judge and re-raises its own wrapper, so a
+    bare ``except CacheMiss`` on ``metric.measure`` can miss it. We inspect the chain so a
+    propagated CacheMiss / ConfigError is recognised even when wrapped.
+    """
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        if isinstance(cur, types):
+            return cur
+        seen.add(id(cur))
+        cur = cur.__cause__ or cur.__context__
+    return None
+
+
 def _run_judge_metric(metric, test_case, name: str, threshold: float) -> MetricResult:
     """Run a DeepEval metric with retry/backoff; map failures to JUDGE_ERROR.
 
     A *low score* is a real FAIL. A judge *exception* (network/timeout/rate-limit) is a
     JUDGE_ERROR — we never let an unreachable judge look like a pass.
+
+    Two failures are NOT transient and must propagate immediately, not retry-sleep into a
+    JUDGE_ERROR: a ``CacheMiss`` (replay mode, this verdict not recorded — the runner turns
+    it into a SKIP) and a ``ConfigError`` (no key — also a SKIP upstream). Retrying either
+    would waste seconds of backoff on a certainty. Both are detected even when DeepEval
+    wraps them (see ``_find_in_chain``).
     """
+    from shared.cache import CacheMiss
+    from shared.config import ConfigError
+
     last_exc: Exception | None = None
     for attempt in range(3):
         try:
@@ -121,7 +147,12 @@ def _run_judge_metric(metric, test_case, name: str, threshold: float) -> MetricR
                 score=score,
                 detail=getattr(metric, "reason", "") or "",
             )
-        except Exception as exc:  # noqa: BLE001 - we deliberately catch any judge failure
+        except Exception as exc:  # noqa: BLE001 - classify, then either propagate or retry
+            propagate = _find_in_chain(exc, (CacheMiss, ConfigError))
+            if propagate is not None:
+                # Re-surface the root cause (CacheMiss/ConfigError), dropping DeepEval's
+                # wrapper; not transient — no retries, no JUDGE_ERROR.
+                raise propagate from None
             last_exc = exc
             time.sleep(2**attempt)  # 1s, 2s, 4s backoff
     return MetricResult(

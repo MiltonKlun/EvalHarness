@@ -31,7 +31,7 @@ eval: ## Live functional eval: re-record ALL cases (needs keys + $). Prefer reco
 record-missing: ## Cheap re-record: call the model ONLY for cache misses, replay the rest (needs keys)
 	LIVE_LLM=1 RECORD_MISSING=1 uv run python -m pytest evals/test_functional.py -v
 
-eval-ci: ## Offline functional eval: replay recorded inputs, metrics run live (needs ANTHROPIC key)
+eval-ci: ## Offline functional eval: replay recorded inputs AND recorded judge verdicts (keyless)
 	uv run python -m pytest evals/test_functional.py -v
 
 redteam: ## Adversarial red-team: replay recorded agent responses, grade live -> graded report

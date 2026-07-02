@@ -18,9 +18,13 @@ let the model drift silently, which is the whole thing this project tests agains
 
 ## Where requests come from
 
-The fast tier makes **zero** API calls (pure replay). Costs below are **per full live-tier
-run** ([`live-eval.yml`](../.github/workflows/live-eval.yml)). Suite sizes are the real counts
-in the repo today:
+The fast tier makes **zero** API calls (pure replay). The **judged offline replay is now
+keyless too**: Claude judge verdicts are recorded like every other LLM call, so `make test`
+and the fast tier replay them with no Anthropic key — a fresh clone runs the *full* judged
+suite for free. Live judge spend happens only when you deliberately re-run against a live
+Claude (the judged tier's fresh-call check, and the live tier). Costs below are **per full
+live-tier run** ([`live-eval.yml`](../.github/workflows/live-eval.yml)). Suite sizes are the
+real counts in the repo today:
 
 | suite | cases | Gemini calls | Claude (judge) calls | notes |
 |---|---:|---:|---:|---|

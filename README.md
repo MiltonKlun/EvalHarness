@@ -314,7 +314,7 @@ it needs:
 | Tier | Trigger | Keys | What runs | What it proves |
 |---|---|---|---|---|
 | **Fast** (`ci.yml`) | every push / PR | **none** | lint + offline tests + the **deterministic** eval checks (abstention, citations, key-facts), replaying recorded Gemini answers *and* recorded retrieval | "my code/prompts didn't regress" — fast, free, blocking |
-| **Judged** (`judged-eval.yml`) | manual / PR label | Anthropic | + the Claude-judged faithfulness & relevancy metrics, over the same recordings | "the metric logic still holds" — **non-blocking on purpose** |
+| **Judged** (`judged-eval.yml`) | manual / PR label | Anthropic | the Claude-judged faithfulness & relevancy metrics with **fresh, live** judge calls over the recorded answers | "the metric logic still holds against a live judge" — **non-blocking on purpose** |
 | **Live drift** (`live-eval.yml`) | weekly cron + manual | Google + Anthropic | the full suite with **real** Gemini calls + the stochasticity/determinism probe | "the model didn't drift" — surfaces real variance |
 
 **Why the judge is deliberately off the blocking path:** the Claude judge is
@@ -323,9 +323,12 @@ money. Gating every merge on a flaky paid check would produce spurious red build
 faithfulness/relevancy run in the opt-in judged tier and the scheduled live tier — never
 as a required PR check. That's intentional CI hygiene, not a gap.
 
-**Nothing is hardcoded.** The fast tier replays *recorded inputs* (both the Gemini answer
-and the retrieved chunks) but the deterministic metrics run live every time. The real,
-stochastic model is genuinely exercised — in the live tier, which is where drift belongs.
+**Nothing is hardcoded.** The fast tier replays *recorded inputs* (the Gemini answer and
+the retrieved chunks) and the deterministic metrics run live every time. The Claude judge
+is *also* recorded now — its verdicts replay in `make test` and the fast/judged offline
+runs, so a fresh clone exercises the full judged suite **keyless** — but those verdicts are
+just cached inputs like any other: the judge is genuinely re-run against a **live** Claude
+in the judged and live tiers (where a real, drifting judge belongs), never faked.
 
 ---
 
