@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import time
 
 # Force live mode BEFORE importing anything that reads config — variance needs real calls.
 os.environ["LIVE_LLM"] = "1"
@@ -35,15 +36,23 @@ SUBSET = [
     "How long is raw inspection footage retained?",
 ]
 
+# Gemini's free tier caps generate at ~5 requests/MINUTE (a separate quota from the daily
+# cap). This experiment fires many calls back-to-back, so without pacing it hits that RPM
+# wall mid-run. Default to one call every 13s (< 5/min) so a free-tier run completes; set
+# DELAY=0 with billing on to run at full speed.
+_DEFAULT_DELAY_S = 13.0
 
-def _sample(question: str, mode: str, n: int) -> list[str]:
+
+def _sample(question: str, mode: str, n: int, delay_s: float) -> list[str]:
     """Call the generator n times for one question+mode, bypassing the cache."""
     chunks = retrieve(question)
     prompt = _build_prompt(question, chunks)
     params = DECODE_MODES[mode]
     model = llm._init(config.GENERATOR_MODEL, **params)
     outs = []
-    for _ in range(n):
+    for i in range(n):
+        if i > 0 and delay_s:
+            time.sleep(delay_s)  # stay under the free-tier per-minute cap
         content = model.invoke(prompt).content
         text = content if isinstance(content, str) else _join_text(content)
         outs.append(text.strip())
@@ -56,12 +65,15 @@ def _join_text(blocks) -> str:
     )
 
 
-def run(samples: int) -> None:
-    print(f"Determinism experiment — {samples} samples/case, model={config.GENERATOR_MODEL}\n")
+def run(samples: int, delay_s: float = _DEFAULT_DELAY_S) -> None:
+    print(
+        f"Determinism experiment — {samples} samples/case, {delay_s}s inter-call delay, "
+        f"model={config.GENERATOR_MODEL}\n"
+    )
     for mode in ("max_pinned", "near_det"):
         print(f"### mode = {mode}  ({DECODE_MODES[mode]})")
         for q in SUBSET:
-            outs = _sample(q, mode, samples)
+            outs = _sample(q, mode, samples, delay_s)
             distinct = len(set(outs))
             verdict = "IDENTICAL" if distinct == 1 else f"{distinct} DISTINCT outputs"
             print(f"  [{verdict:18}] {q}")
@@ -71,14 +83,22 @@ def run(samples: int) -> None:
         print()
     print(
         "Takeaway: any 'DISTINCT' result under max_pinned is direct evidence that "
-        "temperature=0 + seed does NOT guarantee determinism on Gemini."
+        "temperature=0 + seed does NOT guarantee determinism on Gemini; all-IDENTICAL means "
+        "this run did not surface variance (pinning held for this small factual subset)."
     )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Stochasticity/determinism experiment.")
     parser.add_argument("--samples", type=int, default=5, help="samples per case per mode")
-    run(parser.parse_args().samples)
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=_DEFAULT_DELAY_S,
+        help="seconds between calls (default 13s for the free-tier 5 RPM cap; 0 with billing)",
+    )
+    args = parser.parse_args()
+    run(args.samples, args.delay)
 
 
 if __name__ == "__main__":
