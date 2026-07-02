@@ -25,8 +25,11 @@ fmt: ## Auto-format + autofix with ruff
 test: ## Run the test suite (offline; no API keys needed)
 	uv run python -m pytest -q
 
-eval: ## Live functional eval: real Gemini+Claude calls, records to evals/cache (needs keys + $)
+eval: ## Live functional eval: re-record ALL cases (needs keys + $). Prefer record-missing.
 	LIVE_LLM=1 uv run python -m pytest evals/test_functional.py -v
+
+record-missing: ## Cheap re-record: call the model ONLY for cache misses, replay the rest (needs keys)
+	LIVE_LLM=1 RECORD_MISSING=1 uv run python -m pytest evals/test_functional.py -v
 
 eval-ci: ## Offline functional eval: replay recorded inputs, metrics run live (needs ANTHROPIC key)
 	uv run python -m pytest evals/test_functional.py -v
@@ -34,8 +37,11 @@ eval-ci: ## Offline functional eval: replay recorded inputs, metrics run live (n
 redteam: ## Adversarial red-team: replay recorded agent responses, grade live -> graded report
 	uv run python -m adversarial.run
 
-redteam-live: ## Adversarial red-team LIVE: real agent calls, records responses (needs keys + $)
+redteam-live: ## Adversarial red-team: re-record ALL cases (needs keys + $). Prefer redteam-record-missing.
 	LIVE_LLM=1 uv run python -m adversarial.run
+
+redteam-record-missing: ## Cheap red-team re-record: model calls only for misses (needs keys)
+	LIVE_LLM=1 RECORD_MISSING=1 uv run python -m adversarial.run
 
 agent-tests: ## Agent-reliability suite: tests the graph (tool calls, loop safety, state, recovery). Keyless.
 	uv run python -m pytest agent_tests/ -v

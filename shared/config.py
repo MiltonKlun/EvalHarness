@@ -67,6 +67,13 @@ GENERATOR_TEMPERATURE = float(os.getenv("GENERATOR_TEMPERATURE", "0"))
 # Truthy LIVE_LLM => real API calls (and record). Default => replay, hard-fail on miss.
 LIVE_LLM = os.getenv("LIVE_LLM", "0").strip().lower() in {"1", "true", "yes", "on"}
 
+# RECORD_MISSING only matters WHEN LIVE_LLM is truthy: it makes a live recording run
+# replay any key that is ALREADY recorded and call the model only for genuine cache
+# misses. This is the cheap re-record path — a prompt change invalidates only the changed
+# keys, so we pay for those, not for re-sampling the whole (unchanged) baseline. With
+# LIVE_LLM falsy this flag is a no-op (replay mode already never calls the model).
+RECORD_MISSING = os.getenv("RECORD_MISSING", "0").strip().lower() in {"1", "true", "yes", "on"}
+
 CACHE_DIR = _REPO_ROOT / "evals" / "cache"
 
 

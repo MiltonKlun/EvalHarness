@@ -56,3 +56,51 @@ def test_replay_miss_is_hard_failure(cache_in_tmp, monkeypatch):
 
     with pytest.raises(cache.CacheMiss):
         cache.cached_call("test:model", "never recorded", {}, lambda: "x")
+
+
+def test_record_missing_replays_existing_hit(cache_in_tmp, monkeypatch):
+    """RECORD_MISSING + LIVE: an already-recorded key replays; compute() is NOT called."""
+    config, cache = cache_in_tmp
+    pm, prompt, params = "test:model", "hello", {"temperature": 0}
+
+    # Seed a recording via a normal live call.
+    monkeypatch.setattr(config, "LIVE_LLM", True)
+    monkeypatch.setattr(config, "RECORD_MISSING", False)
+    assert cache.cached_call(pm, prompt, params, lambda: "world") == "world"
+
+    # Now a RECORD_MISSING live run must replay the hit without recomputing.
+    monkeypatch.setattr(config, "RECORD_MISSING", True)
+
+    def must_not_run():
+        raise AssertionError("compute() must not run on a hit under RECORD_MISSING")
+
+    assert cache.cached_call(pm, prompt, params, must_not_run) == "world"
+
+
+def test_record_missing_records_a_genuine_miss(cache_in_tmp, monkeypatch):
+    """RECORD_MISSING + LIVE: an unrecorded key IS computed and recorded."""
+    config, cache = cache_in_tmp
+    monkeypatch.setattr(config, "LIVE_LLM", True)
+    monkeypatch.setattr(config, "RECORD_MISSING", True)
+    calls = {"n": 0}
+
+    def compute():
+        calls["n"] += 1
+        return "fresh"
+
+    assert cache.cached_call("test:model", "brand new", {}, compute) == "fresh"
+    assert calls["n"] == 1
+    # And it is now on disk: a subsequent replay-mode call returns it with no compute.
+    monkeypatch.setattr(config, "LIVE_LLM", False)
+    monkeypatch.setattr(config, "RECORD_MISSING", False)
+    assert cache.cached_call("test:model", "brand new", {}, lambda: "x") == "fresh"
+
+
+def test_record_missing_is_noop_in_replay_mode(cache_in_tmp, monkeypatch):
+    """RECORD_MISSING has no effect when LIVE_LLM is falsy: a miss still hard-fails."""
+    config, cache = cache_in_tmp
+    monkeypatch.setattr(config, "LIVE_LLM", False)
+    monkeypatch.setattr(config, "RECORD_MISSING", True)
+
+    with pytest.raises(cache.CacheMiss):
+        cache.cached_call("test:model", "never recorded", {}, lambda: "x")
