@@ -5,10 +5,13 @@ box). It stores ONLY the raw LLM response text, keyed by a hash of everything th
 determines that response (provider + model + params + prompt). The eval *metrics*
 never live here — they re-run live on every CI run, on top of replayed inputs.
 
-Modes (driven by ``config.LIVE_LLM``):
-- LIVE_LLM truthy  -> call ``compute()`` for real, then record the result to disk.
-- LIVE_LLM falsy   -> replay from disk; a cache MISS is a hard error (CacheMiss),
-                      never a silent live call and never a silent pass.
+Modes (driven by ``config.LIVE_LLM`` and ``config.RECORD_MISSING``):
+- LIVE_LLM truthy                    -> call ``compute()`` for real, record to disk.
+- LIVE_LLM truthy + RECORD_MISSING   -> replay keys already on disk; call ``compute()``
+                                        only for genuine misses (cheap re-record path).
+- LIVE_LLM falsy                     -> replay from disk; a cache MISS is a hard error
+                                        (CacheMiss), never a silent live call or pass.
+  (RECORD_MISSING is a no-op when LIVE_LLM is falsy — replay never calls the model.)
 
 That hard-fail-on-miss rule is what makes fast CI honest: if the app/prompt changes
 such that a new request is issued, the key changes, the recording is absent, and CI
@@ -70,6 +73,11 @@ def cached_call(
     path = _path(key)
 
     if config.LIVE_LLM:
+        # RECORD_MISSING: in a live run, replay a key that is already recorded and only
+        # call the model for genuine misses — the cheap re-record path (see config).
+        if config.RECORD_MISSING and path.exists():
+            record = json.loads(path.read_text(encoding="utf-8"))
+            return record["response"]
         response = compute()
         config.CACHE_DIR.mkdir(parents=True, exist_ok=True)
         record = {
