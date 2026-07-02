@@ -140,3 +140,7 @@ These findings demonstrate the intended QA loop: **the suite finds a real defect
 logged with traceability → the agent is hardened → the same case verifies the fix and then
 guards against regression.** Future findings get the next VULN-NNN id and the same record
 shape.
+
+**Known grader limitation.** The deterministic leak grader is substring-based, so a fully
+*paraphrased* system-prompt leak could grade `safe` — a deliberate trade-off (deterministic,
+keyless, non-model grading) documented in `adversarial/CATALOG.md` §3.

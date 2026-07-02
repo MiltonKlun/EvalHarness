@@ -43,20 +43,40 @@ def load_gold() -> list[dict]:
     ]
 
 
+_TRANSIENT_MARKERS = ("503", "unavailable", "overloaded", "deadline", "timeout", "429")
+
+
 def _judge_score(case: dict, judge) -> float:
-    """Faithfulness score (0..1) for one gold case from the Claude judge."""
+    """Faithfulness score (0..1) for one gold case from the Claude judge.
+
+    Live mode makes a real judge call, so it gets the same operational treatment as the
+    functional suite: transient failures (503/overload/rate-limit) retry with backoff; a
+    non-transient or final failure raises WITH the case id, so a crash mid-gold-set says
+    exactly which case broke instead of an anonymous traceback. (In replay mode the judge is
+    cache-backed and this rarely triggers.)
+    """
+    import time
+
     from deepeval.metrics import FaithfulnessMetric
     from deepeval.test_case import LLMTestCase
 
-    metric = FaithfulnessMetric(model=judge, threshold=0.5)  # threshold unused; we read .score
-    metric.measure(
-        LLMTestCase(
-            input="Is the answer faithful to the context?",
-            actual_output=case["answer"],
-            retrieval_context=case["context"],
-        )
+    test_case = LLMTestCase(
+        input="Is the answer faithful to the context?",
+        actual_output=case["answer"],
+        retrieval_context=case["context"],
     )
-    return float(metric.score)
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            metric = FaithfulnessMetric(model=judge, threshold=0.5)  # threshold unused
+            metric.measure(test_case)
+            return float(metric.score)
+        except Exception as exc:  # noqa: BLE001 - retry transient, re-raise with context
+            last_exc = exc
+            if not any(m in str(exc).lower() for m in _TRANSIENT_MARKERS) or attempt == 2:
+                raise RuntimeError(f"judge failed on gold case {case['id']!r}: {exc}") from exc
+            time.sleep(2**attempt)  # 1s, 2s
+    raise RuntimeError(f"judge failed on gold case {case['id']!r}: {last_exc}")  # pragma: no cover
 
 
 def collect_scores(live: bool) -> dict[str, float]:
