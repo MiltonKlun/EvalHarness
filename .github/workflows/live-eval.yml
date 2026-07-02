@@ -59,8 +59,11 @@ jobs:
           uv run python -m evals.determinism_experiment \
             --samples "${{ github.event.inputs.samples || '3' }}" | tee determinism-report.txt
 
-      - name: Record metrics-over-time row (drift made visible)
-        continue-on-error: true
+      - name: Record metrics-over-time row + enforce the regression gate
+        # NOT continue-on-error: this is the drift alarm. record_history appends the row
+        # and then fails (exit 1) if a suite mean dropped beyond thresholds.yaml's
+        # max_mean_drop versus the last committed row — a genuine degradation turns the
+        # scheduled run RED instead of being silently swallowed.
         run: |
           uv run python -m evals.record_history | tee history-report.txt
 
