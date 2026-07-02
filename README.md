@@ -294,15 +294,16 @@ the trend:
 ```text
 timestamp            sha        pass  faith  relev jerr
 --------------------------------------------------------
-2026-06-28T06:00:00  c40a1ef     1.0   0.92    0.9    0
-2026-06-29T06:00:00  b781327     1.0   0.95   0.91    0
+2026-07-02T07:42:25  9a0346a     1.0    1.0    1.0    0
 --------------------------------------------------------
-faithfulness trend: ▁█
+faithfulness trend: .
 ```
 
 The file is plain CSV on purpose — it **diffs cleanly in git**, so a drift shows up in a pull
 request the same way a code change does, and the history is append-only (never rewritten). The
-live tier records a row automatically; the seed rows above are illustrative.
+row above is a **real** measurement from the committed baseline (faithfulness 1.0 reflects the
+judge's known lenient bias — it's an *upper bound*, see the meta-eval section); the live tier
+appends one per run, and the sparkline trend fills in as history accumulates.
 
 **The aggregate regression gate lives here.** After recording a row, `record_history` compares
 the new suite means against the **last committed row** and exits non-zero if any dropped beyond
