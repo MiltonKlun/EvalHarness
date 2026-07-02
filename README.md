@@ -304,6 +304,14 @@ The file is plain CSV on purpose — it **diffs cleanly in git**, so a drift sho
 request the same way a code change does, and the history is append-only (never rewritten). The
 live tier records a row automatically; the seed rows above are illustrative.
 
+**The aggregate regression gate lives here.** After recording a row, `record_history` compares
+the new suite means against the **last committed row** and exits non-zero if any dropped beyond
+`regression.max_mean_drop` in [thresholds.yaml](thresholds.yaml). This is the "did the suite get
+*worse*?" gate the threshold-strategy section describes — deliberately baseline-relative (a
+single noisy sample dipping isn't a regression; a fleet-wide mean drop is), and it runs in the
+**live tier only** (replayed means are constant, so the signal exists only on real runs). Its
+workflow step is *not* `continue-on-error`: a genuine degradation turns the scheduled run red.
+
 ## The CI philosophy: replay vs. live, and why the judge isn't a merge gate
 
 The hard problem in testing LLMs is that the same prompt gives different answers, the

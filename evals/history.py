@@ -99,6 +99,44 @@ def load_history(path: Path = HISTORY_CSV) -> list[dict[str, str]]:
         return list(csv.DictReader(fh))
 
 
+# The aggregate/regression gate the README's threshold-strategy box promises: a single
+# case dipping on one noisy sample isn't a regression, but a suite-wide MEAN drop beyond
+# `max_mean_drop` versus the last committed baseline is. These three are "higher is better".
+_REGRESSION_METRICS = ("mean_faithfulness", "mean_relevancy", "pass_rate")
+
+
+def _as_float(value) -> float | None:
+    if value in ("", None):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def check_regression(current: dict, baseline: dict, max_mean_drop: float) -> list[str]:
+    """Return one message per metric that dropped more than ``max_mean_drop`` vs baseline.
+
+    Empty list = pass. A metric that is missing/None on either side is skipped with an
+    explanatory message (never silently treated as 0 — that would fabricate a regression).
+    ``current`` and ``baseline`` are row dicts (values may be floats or CSV strings).
+    """
+    messages: list[str] = []
+    for metric in _REGRESSION_METRICS:
+        cur = _as_float(current.get(metric))
+        base = _as_float(baseline.get(metric))
+        if cur is None or base is None:
+            messages.append(f"{metric}: skipped (missing value — cur={cur}, baseline={base})")
+            continue
+        drop = base - cur
+        if drop > max_mean_drop:
+            messages.append(
+                f"{metric}: REGRESSION — dropped {drop:.4f} "
+                f"({base:.4f} -> {cur:.4f}), exceeds max_mean_drop {max_mean_drop}"
+            )
+    return messages
+
+
 # Unicode block sparkline (8 levels) with an ASCII fallback for consoles that can't encode
 # it (notably the default Windows cp1252 terminal). render() picks based on the stream.
 _SPARK_BLOCKS = "▁▂▃▄▅▆▇█"

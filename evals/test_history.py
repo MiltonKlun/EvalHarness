@@ -93,3 +93,42 @@ def test_render_shows_trend(tmp_path):
     out = history.render(csv_path)
     assert "2 run(s) recorded" in out
     assert "faithfulness trend:" in out
+
+
+# --- Regression gate (max_mean_drop) -----------------------------------------------
+
+
+def test_regression_within_tolerance_passes():
+    base = {"mean_faithfulness": "0.95", "mean_relevancy": "0.90", "pass_rate": "1.0"}
+    cur = {"mean_faithfulness": "0.92", "mean_relevancy": "0.88", "pass_rate": "1.0"}
+    assert history.check_regression(cur, base, max_mean_drop=0.1) == []
+
+
+def test_regression_beyond_tolerance_flags_only_that_metric():
+    base = {"mean_faithfulness": "0.95", "mean_relevancy": "0.90", "pass_rate": "1.0"}
+    cur = {"mean_faithfulness": "0.70", "mean_relevancy": "0.88", "pass_rate": "1.0"}
+    msgs = history.check_regression(cur, base, max_mean_drop=0.1)
+    assert len(msgs) == 1
+    assert "mean_faithfulness" in msgs[0] and "REGRESSION" in msgs[0]
+
+
+def test_regression_exactly_at_threshold_passes():
+    # drop == max_mean_drop is allowed (only a drop STRICTLY greater fails).
+    base = {"mean_faithfulness": "0.90", "mean_relevancy": "0.90", "pass_rate": "1.0"}
+    cur = {"mean_faithfulness": "0.80", "mean_relevancy": "0.90", "pass_rate": "1.0"}
+    assert history.check_regression(cur, base, max_mean_drop=0.1) == []
+
+
+def test_regression_improvement_never_flags():
+    base = {"mean_faithfulness": "0.50", "mean_relevancy": "0.50", "pass_rate": "0.5"}
+    cur = {"mean_faithfulness": "0.99", "mean_relevancy": "0.99", "pass_rate": "1.0"}
+    assert history.check_regression(cur, base, max_mean_drop=0.1) == []
+
+
+def test_regression_missing_value_is_skipped_not_treated_as_zero():
+    base = {"mean_faithfulness": "0.95", "mean_relevancy": "", "pass_rate": "1.0"}
+    cur = {"mean_faithfulness": "0.94", "mean_relevancy": "0.90", "pass_rate": "1.0"}
+    msgs = history.check_regression(cur, base, max_mean_drop=0.1)
+    # relevancy has no baseline -> skipped with a note, NOT a fabricated 0.90 -> 0 drop.
+    assert len(msgs) == 1
+    assert "mean_relevancy" in msgs[0] and "skipped" in msgs[0]
