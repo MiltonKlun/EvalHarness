@@ -28,12 +28,12 @@ real counts in the repo today:
 
 | suite | cases | Gemini calls | Claude (judge) calls | notes |
 |---|---:|---:|---:|---|
-| Functional eval | 21 | 21 | ~42 | 1 generate per case; judge runs faithfulness **+** relevancy (~2 judge calls/case) |
+| Functional eval | 21 | 21 | ~32 | 1 generate per case; the judge runs only on the 16 *answerable* cases (12 answerable + 4 multihop) × 2 metrics — the 5 unanswerable cases never call the judge |
 | Adversarial red-team | 16 | 16 | 4 | 4 payload sets × 4 cases; only the 4 toxicity cases use the Claude judge |
 | Agent reliability (live tool-choice) | ~3 | ~3 | 0 | only the live tool-selection check hits Gemini; the rest is keyless/in-memory |
 | Meta-eval (judge-drift) | 20 | 0 | 20 | judge-only — re-grades the gold set, no generator calls |
 | Determinism probe | 3 subset | 18 | 0 | 3 questions × 2 decode modes × 3 samples (default) |
-| **Per live run (approx.)** | | **~58 Gemini** | **~66 Claude** | |
+| **Per live run (approx.)** | | **~58 Gemini** | **~56 Claude** | |
 
 ### One-time, not per-run
 
@@ -81,10 +81,15 @@ gracefully, not a build failure:
 
 ## The bottom line
 
-- **Day-to-day development and every PR: $0, no keys** — fast CI and `make test` replay.
-- **A full live drift run (~58 Gemini calls) exceeds the free 20/day cap**, so it's run rarely,
-  incrementally, or with billing on — never on every commit. Claude judge cost is a few cents.
+- **Day-to-day development and every PR: $0, no keys** — fast CI and `make test` replay
+  (including the judge verdicts, which are now recorded too).
+- **A full live drift run (~58 Gemini + ~56 Claude calls)** exceeds the free Gemini 20/day cap,
+  so on the free tier it's run rarely or incrementally (`make record-missing` pays only for
+  what changed). Claude judge cost is a few cents.
+- **With billing enabled** (the maintainer's operative mode) the daily cap disappears and a full
+  live run costs on the order of **$0.05**. The free-tier math above stays as the documented
+  baseline because the constraint is part of the story — record/replay is precisely the design
+  that makes the harness usable *without* billing.
 - The design choice that makes the day-to-day free is **record/replay**: pay for the stochastic
-  model once (within the tight free quota), commit the recordings, then re-run the free,
-  deterministic metric *code* over them as many times as you like. The 20/day cap isn't a
-  footnote — it's the constraint the whole architecture is built around.
+  model once, commit the recordings, then re-run the free, deterministic metric *code* over them
+  as many times as you like.
