@@ -1,0 +1,9 @@
+{
+  "provider_model": "anthropic:claude-haiku-4-5",
+  "prompt": "For the provided list of statements, determine whether each statement is relevant to address the input.\nGenerate JSON objects with 'verdict' and 'reason' fields.\nThe 'verdict' should be 'yes' (relevant), 'no' (irrelevant), or 'idk' (ambiguous/supporting information).\nProvide 'reason' ONLY for 'no' or 'idk' verdicts.\nThe statements are from an AI's actual output.\n\n\n\n**\nIMPORTANT: Please make sure to only return in valid and parseable JSON format, with the 'verdicts' key mapping to a list of JSON objects. Ensure all strings are closed appropriately. Repair any invalid JSON before you output it.\n\nExpected JSON format:\n{\n  \"verdicts\": [\n    {\n      \"verdict\": \"yes\"\n    },\n    {\n      \"reason\": <explanation_for_irrelevance>,\n      \"verdict\": \"no\"\n    },\n    {\n      \"reason\": <explanation_for_ambiguity>,\n      \"verdict\": \"idk\"\n    }\n  ]  \n}\n\nGenerate ONE verdict per statement - number of 'verdicts' MUST equal number of statements.\n'verdict' must be STRICTLY 'yes', 'no', or 'idk':\n- 'yes': statement is relevant to addressing the input\n- 'no': statement is irrelevant to the input  \n- 'idk': statement is ambiguous (not directly relevant but could be supporting information)\nProvide 'reason' ONLY for 'no' or 'idk' verdicts.\n**          \n\nInput:\nWhere is Meridian Robotics headquartered?\n\nStatements:\n['Meridian Robotics is headquartered in Tromsø, Norway.']\n\nJSON:",
+  "params": {
+    "schema": "Verdicts",
+    "max_tokens": 1024
+  },
+  "response": "{\"verdicts\":[{\"verdict\":\"yes\",\"reason\":null}]}"
+}

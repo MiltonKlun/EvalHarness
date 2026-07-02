@@ -1,0 +1,9 @@
+{
+  "provider_model": "anthropic:claude-haiku-4-5",
+  "prompt": "Given the answer relevancy score, the list of reasons of irrelevant statements made in the actual output, and the input, provide a CONCISE reason for the score. Explain why it is not higher, but also why it is at its current score.\nThe irrelevant statements represent things in the actual output that is irrelevant to addressing whatever is asked/talked about in the input.\nIf there is nothing irrelevant, just say something positive with an upbeat encouraging tone (but don't overdo it otherwise it gets annoying).\n\n\n\n**\nIMPORTANT: Please make sure to only return in JSON format, with the 'reason' key providing the reason. Ensure all strings are closed appropriately. Repair any invalid JSON before you output it.\n\nExample:\nExample JSON:\n{\n  \"reason\": \"The score is <answer_relevancy_score> because <your_reason>.\"\n}\n===== END OF EXAMPLE ======\n**\n\n\nAnswer Relevancy Score:\n1.00\n\nReasons why the score can't be higher based on irrelevant statements in the actual output:\n[]\n\nInput:\nWhat is the lightning distance limit that grounds a flight?\n\nJSON:",
+  "params": {
+    "schema": "AnswerRelevancyScoreReason",
+    "max_tokens": 1024
+  },
+  "response": "{\"reason\":\"The score is 1.00 because the actual output directly and comprehensively addresses the input question about lightning distance limits for flight groundings with no irrelevant information included. Excellent work providing a focused and relevant response!\"}"
+}

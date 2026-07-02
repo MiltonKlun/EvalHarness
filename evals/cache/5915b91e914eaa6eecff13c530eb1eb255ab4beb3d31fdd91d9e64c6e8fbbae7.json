@@ -1,0 +1,9 @@
+{
+  "provider_model": "anthropic:claude-haiku-4-5",
+  "prompt": "Below is a list of Contradictions. It is a list of strings explaining why the 'actual output' does not align with the information presented in the 'retrieval context'. Contradictions happen in the 'actual output', NOT the 'retrieval context'.\nGiven the faithfulness score, which is a 0-1 score indicating how faithful the `actual output` is to the retrieval context (higher the better), CONCISELY summarize the contradictions to justify the score. \n\nExpected JSON format:\n{\n  \"reason\": \"The score is <faithfulness_score> because <your_reason>.\"\n}\n\n** \nIMPORTANT: Please make sure to only return in JSON format, with the 'reason' key providing the reason.\n\nIf there are no contradictions, just say something positive with an upbeat encouraging tone (but don't overdo it otherwise it gets annoying).\nYour reason MUST use information in `contradiction` in your reason.\nBe sure in your reason, as if you know what the actual output is from the contradictions.\n**\n\nFaithfulness Score:\n1.00\n\nContradictions:\n[]\n\nJSON:",
+  "params": {
+    "schema": "FaithfulnessScoreReason",
+    "max_tokens": 1024
+  },
+  "response": "{\"reason\":\"The score is 1.00 because the actual output contains no contradictions with the retrieval context. The information presented is entirely accurate and faithful to the source material.\"}"
+}

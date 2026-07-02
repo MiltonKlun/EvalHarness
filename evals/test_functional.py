@@ -39,8 +39,8 @@ def test_case(case):
         report = evaluate_case(case, deterministic_only=DETERMINISTIC_ONLY)
     except cache.CacheMiss:
         pytest.skip(
-            f"no recording for {case.id!r} and not in live mode — "
-            f"run `make eval` once to record a baseline"
+            f"no recording for {case.id!r} (agent answer or judge verdict) and not in live "
+            f"mode — run `make record-missing` once to record the baseline"
         )
     except config.ConfigError as exc:
         pytest.skip(f"missing config for live run: {exc}")
