@@ -216,34 +216,45 @@ agreement, and if a future Claude version degrades, the suite goes red.
 This is the difference between "I used an eval framework" and "I measured my evaluator and
 know exactly where it's wrong."
 
-## `temperature=0` ≠ determinism (the stochasticity finding)
+## Determinism, measured (not assumed) — the stochasticity finding
 
 A common assumption is that `temperature=0` makes an LLM deterministic, so you could just
-snapshot one "golden" answer and assert exact-match. **It doesn't, and you can't** — this
-repo *measures* the gap instead of assuming it away.
-
-The experiment (`python -m evals.determinism_experiment`) samples a representative subset of
-questions **N times** in two decode modes, bypassing the cache so it sees real variance:
+snapshot one "golden" answer and assert exact-match. Rather than assume either way, this repo
+**measures** it: `python -m evals.determinism_experiment` samples a representative 3-question
+subset **N times** in two decode modes, bypassing the cache so it sees real run-to-run
+behaviour.
 
 | mode | knobs pinned |
 |---|---|
 | `near_det` | `temperature=0` only |
 | `max_pinned` | `temperature=0` **+** `top_p`/`top_k` fixed **+** `seed` set — every knob the API exposes |
 
-The honest framing, baked into the design: Gemini *does* accept a `seed`, but **Google's own
-docs call it best-effort** — a `temperature=0` response is only "*mostly* deterministic." So
-we **don't claim to have forced determinism**. We pin every available knob and then report the
-residual variance. Any case that comes back with *distinct* outputs under `max_pinned` is
-direct evidence that **`temperature=0` + `seed` still isn't deterministic** on this model.
+**What the latest run actually found** (2026-07-03, 3 samples/case/mode, `gemini-2.5-flash`;
+raw log: [docs/determinism_run.txt](docs/determinism_run.txt)):
 
-Why this matters for the harness as a whole:
+| mode | questions with identical output across all samples |
+|---|---|
+| `max_pinned` | **3 / 3 — all identical** |
+| `near_det` | **3 / 3 — all identical** |
+
+So *in this run*, pinning held: no variance surfaced, even in `near_det`. That is a real
+result — but the honest reading is **"no variance observed here," not "determinism is
+guaranteed."** Google's own docs call the `seed` **best-effort** and a `temperature=0`
+response only "*mostly* deterministic," so a single clean run over a small factual subset
+doesn't prove the model can't vary — it just didn't, this time. That is precisely why the
+experiment **re-runs in the weekly live tier**: if a future run turns up a `DISTINCT` result
+(especially under `max_pinned`), that's direct evidence `temperature=0 + seed` isn't a
+determinism guarantee, captured the moment it happens rather than assumed up front.
+
+Either way, the design conclusion is the same — and it's *why* the harness is built the way
+it is:
 
 - It's **why exact-match assertions are the wrong tool** — and why the suite grades *fuzzy*
   qualities (groundedness, relevancy) instead.
 - It's **why a single case dipping below a threshold on one sample isn't automatically a
   regression** — the thresholds use a baseline-relative regression gate
-  ([thresholds.yaml](thresholds.yaml) → `max_mean_drop`), sized with the variance this
-  experiment surfaces, not a brittle per-call line.
+  ([thresholds.yaml](thresholds.yaml) → `max_mean_drop`) that tolerates run-to-run noise,
+  rather than a brittle per-call line that any future `DISTINCT` result would trip.
 - It's **why drift detection lives in the live tier** (where this probe runs), not in the
   fast PR gate — you can't tell drift from noise without first measuring the noise floor.
 

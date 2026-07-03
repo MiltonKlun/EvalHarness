@@ -1,20 +1,17 @@
-# Determinism experiment — run log
+# Determinism experiment — committed run evidence
+# Run: 2026-07-03 · 3 samples/case/mode · 3-question subset · 18 live Gemini calls total
+# Reproduce: python -m evals.determinism_experiment --samples 3 --delay 13
 
-Placeholder. A clean, complete run goes here (committed as raw evidence for the README's
-"temperature=0 ≠ determinism" section).
+Determinism experiment - 3 samples/case, 13.0s inter-call delay, model=google_genai:gemini-2.5-flash
 
-Command:
-    python -m evals.determinism_experiment --samples 5      # billing on: full speed
-    python -m evals.determinism_experiment --samples 3 --delay 13   # free tier: paced under 5 RPM
+### mode = max_pinned  ({'temperature': 0, 'top_p': 1.0, 'top_k': 1, 'seed': 42})
+  [IDENTICAL         ] Who founded Meridian Robotics?
+  [IDENTICAL         ] Which Meridian drone can fly in 20 m/s wind?
+  [IDENTICAL         ] How long is raw inspection footage retained?
 
-## Status: pending one clean run
+### mode = near_det  ({'temperature': 0})
+  [IDENTICAL         ] Who founded Meridian Robotics?
+  [IDENTICAL         ] Which Meridian drone can fly in 20 m/s wind?
+  [IDENTICAL         ] How long is raw inspection footage retained?
 
-Attempts on 2026-07-02 were cut short by the Gemini free-tier caps (first the per-minute
-5 RPM cap, then the daily 20-request cap once the day's budget was spent on other
-re-records). The experiment was hardened in response (configurable `--delay`, default 13s,
-to stay under 5 RPM), but a full run needs a fresh daily budget or billing enabled.
-
-Partial observations so far (both runs, all COMPLETED samples): every sample was
-**IDENTICAL** within its (question, mode) — no variance surfaced yet on this small factual
-subset. This is preliminary and NOT the committed finding; the README will cite only a
-single clean, complete run.
+Takeaway: any 'DISTINCT' result under max_pinned is direct evidence that temperature=0 + seed does NOT guarantee determinism on Gemini; all-IDENTICAL means this run did not surface variance (pinning held for this small factual subset).
