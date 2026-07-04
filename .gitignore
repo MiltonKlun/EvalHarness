@@ -40,3 +40,8 @@ Thumbs.db
 # --- DeepEval local telemetry/cache ---
 .deepeval/
 .deepeval-cache.json
+
+# --- Private planning docs (local working documents, not for repo visitors) ---
+V1.2_IMPROVEMENTS.md
+docs/LLM_Eval_Harness_Build_Plan.md
+docs/V1.1_Hardening_Plan.md
