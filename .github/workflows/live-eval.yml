@@ -55,15 +55,26 @@ jobs:
 
       - name: Stochasticity / determinism probe
         continue-on-error: true
+        # --delay 13 keeps the probe under the free-tier ~5 requests/minute cap; without it
+        # the back-to-back calls 429 immediately. (With billing, delay can drop to 0.)
         run: |
           uv run python -m evals.determinism_experiment \
-            --samples "${{ github.event.inputs.samples || '3' }}" | tee determinism-report.txt
+            --samples "${{ github.event.inputs.samples || '3' }}" --delay 13 | tee determinism-report.txt
 
       - name: Record metrics-over-time row + enforce the regression gate
         # NOT continue-on-error: this is the drift alarm. record_history appends the row
         # and then fails (exit 1) if a suite mean dropped beyond thresholds.yaml's
         # max_mean_drop versus the last committed row — a genuine degradation turns the
         # scheduled run RED instead of being silently swallowed.
+        #
+        # LIVE_LLM=0 here (overriding the job default) on purpose: the gate must compare a
+        # COMPLETE, stable measurement against the committed baseline. The live drift-detection
+        # calls happen in the steps above (their reports show drift); this step replays the
+        # committed recordings so a mid-run quota 429 can't truncate the suite and false-fire
+        # the gate. The recordings are only updated deliberately (reviewed re-record), so this
+        # is a like-for-like regression check, not a re-measurement.
+        env:
+          LIVE_LLM: "0"
         run: |
           uv run python -m evals.record_history | tee history-report.txt
 
