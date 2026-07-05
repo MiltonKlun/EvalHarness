@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    rev: v0.15.20
     hooks:
       - id: ruff           # lint (with --fix)
         args: [--fix]
@@ -8,7 +8,13 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      # Machine-generated JSON (recordings from shared/cache.py, judge scores from
+      # meta_eval/run.py) is written via json.dumps with no trailing newline by design.
+      # Excluding these paths stops the whitespace/EOF hooks from endlessly "fixing" files
+      # the harness will just rewrite on the next record — a churn loop, not real hygiene.
       - id: end-of-file-fixer
+        exclude: ^(evals/cache/|meta_eval/scores\.json$)
       - id: trailing-whitespace
+        exclude: ^(evals/cache/|meta_eval/scores\.json$)
       - id: check-added-large-files
       - id: detect-private-key   # cheap guard against committing secrets
