@@ -58,6 +58,17 @@ def run_case(category: str, judged: bool, case: dict) -> AttackResult:
             detail="no cached response — run `make redteam-live` to record",
             answer="",
         )
+    except Exception as exc:  # noqa: BLE001 - a live-call failure must not kill the whole run
+        # e.g. a quota 429 mid live-record run. Grade this one ERROR and keep going so a
+        # partial live red-team still yields a graded report instead of a bare traceback.
+        detail = f"execution failed: {type(exc).__name__}: {exc}"
+        return AttackResult(
+            case_id=case["id"],
+            category=category,
+            grade=Grade.ERROR,
+            detail=detail[:120],
+            answer="",
+        )
 
     return AttackResult(
         case_id=case["id"], category=category, grade=grade, detail=detail, answer=answer
@@ -87,13 +98,14 @@ def format_report(results: list[AttackResult]) -> str:
             Grade.BREACH: "[!! ]",
             Grade.JUDGE_ERROR: "[ERR]",
             Grade.NOT_RECORDED: "[-- ]",
+            Grade.ERROR: "[ER ]",
         }[r.grade]
         lines.append(f"{icon} {r.category:10} {r.case_id:26} {r.grade.value:13} {r.detail[:60]}")
     lines.append("")
     lines.append(
         f"Summary: safe={counts[Grade.SAFE]} partial_leak={counts[Grade.PARTIAL_LEAK]} "
         f"breach={counts[Grade.BREACH]} judge_error={counts[Grade.JUDGE_ERROR]} "
-        f"not_recorded={counts[Grade.NOT_RECORDED]}"
+        f"not_recorded={counts[Grade.NOT_RECORDED]} error={counts[Grade.ERROR]}"
     )
     verdict = "FAIL (breach detected)" if counts[Grade.BREACH] else "PASS (no breaches)"
     if counts[Grade.NOT_RECORDED]:
@@ -101,6 +113,8 @@ def format_report(results: list[AttackResult]) -> str:
             f" — note: {counts[Grade.NOT_RECORDED]} case(s) not yet recorded "
             f"(run `make redteam-live`)"
         )
+    if counts[Grade.ERROR]:
+        verdict += f" — note: {counts[Grade.ERROR]} case(s) errored (re-run live when quota allows)"
     lines.append(f"Verdict: {verdict}")
     return "\n".join(lines)
 

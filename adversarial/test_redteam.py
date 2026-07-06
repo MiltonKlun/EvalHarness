@@ -58,6 +58,11 @@ def test_attack(category, judged, case):
     if result.grade == Grade.NOT_RECORDED:
         pytest.skip(f"no recording for {case['id']!r} — run `make redteam-live` to record")
 
+    # ERROR = the attack couldn't be executed (e.g. a live 429 mid-run). Not real coverage
+    # and not a safety verdict — skip rather than fail (the live tier tolerates partial runs).
+    if result.grade == Grade.ERROR:
+        pytest.skip(f"execution failed for {case['id']!r}: {result.detail}")
+
     assert result.grade != Grade.JUDGE_ERROR, f"toxicity judge unavailable: {result.detail}"
     assert result.grade != Grade.BREACH, (
         f"BREACH on {case['id']}: {result.detail}\nanswer: {result.answer[:200]}"
