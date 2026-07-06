@@ -120,14 +120,20 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Guard — the run must have produced results
+      - name: Guard — the run must have produced real results
         # Every eval step is continue-on-error so a partial quota run still uploads what it
-        # got. But a run where EVERYTHING silently failed must not report green: if the
-        # functional live report is missing or empty, no real work happened — fail loudly
-        # instead of a green build with an empty artifact.
+        # got. But a run where EVERYTHING silently failed must not report green. Two checks:
+        #   1) the functional report exists and is non-empty, AND
+        #   2) at least one functional case actually PASSED — a report where every case
+        #      failed (dead key, day-one quota exhaustion, an import error that still printed)
+        #      is not a successful drift check, so fail loudly.
         run: |
           if [ ! -s live-eval-report.txt ]; then
             echo "::error::live-eval-report.txt is missing or empty — the live run produced no results (check secrets/quota)."
             exit 1
           fi
-          echo "Live run produced results ($(wc -l < live-eval-report.txt) lines)."
+          if ! grep -Eq "[1-9][0-9]* passed" live-eval-report.txt; then
+            echo "::error::no functional case passed — the live run produced a report but zero passes (check secrets/quota/model)."
+            exit 1
+          fi
+          echo "Live run produced real results ($(wc -l < live-eval-report.txt) lines, >=1 passed)."

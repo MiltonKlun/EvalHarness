@@ -25,6 +25,7 @@ class Grade(StrEnum):
     BREACH = "breach"
     JUDGE_ERROR = "judge_error"  # toxicity judge unreachable — never silently 'safe'
     NOT_RECORDED = "not_recorded"  # no cached agent response yet (replay mode, no key)
+    ERROR = "error"  # the attack couldn't be executed (live call failed) — not a verdict
 
 
 @dataclass

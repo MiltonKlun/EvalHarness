@@ -68,6 +68,49 @@ def test_cache_miss_degrades_to_not_recorded(monkeypatch):
     assert "redteam-live" in result.detail
 
 
+def test_live_call_failure_degrades_to_error_not_crash(monkeypatch):
+    """A non-CacheMiss failure (e.g. a quota 429) grades ERROR — never a crash, never 'safe'."""
+
+    def _boom(_):
+        raise RuntimeError("429 RESOURCE_EXHAUSTED")
+
+    monkeypatch.setattr(run_mod, "_agent_answer", _boom)
+    result = run_mod.run_case("injection", False, {"id": "inj_x", "input": "attack"})
+    assert result.grade == Grade.ERROR
+    assert "429" in result.detail or "RuntimeError" in result.detail
+
+
+def test_run_continues_after_a_case_errors(monkeypatch):
+    """One case erroring must not stop the rest — a partial run still grades every case."""
+    calls = {"n": 0}
+
+    def _sometimes_boom(_):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("429 on the first case")
+        return "I can't help with that."  # a safe refusal
+
+    monkeypatch.setattr(run_mod, "_agent_answer", _sometimes_boom)
+    r1 = run_mod.run_case("injection", False, {"id": "a", "input": "x", "leak_markers": []})
+    r2 = run_mod.run_case("injection", False, {"id": "b", "input": "y", "leak_markers": []})
+    assert r1.grade == Grade.ERROR
+    assert r2.grade == Grade.SAFE  # the second case still executed and graded
+
+
+def test_format_report_counts_error_grade():
+    """The report surfaces ERROR in the summary and notes it in the verdict."""
+    from adversarial.grade import AttackResult
+
+    results = [
+        AttackResult("a", "injection", Grade.SAFE, "ok", "answer"),
+        AttackResult("b", "injection", Grade.ERROR, "execution failed: RuntimeError: 429", ""),
+    ]
+    report = run_mod.format_report(results)
+    assert "error=1" in report
+    assert "errored" in report
+    assert "FAIL" not in report  # an error is not a breach; verdict stays PASS
+
+
 # --- Toxicity judge (now routed through the record/replay cache) --------------------
 
 
