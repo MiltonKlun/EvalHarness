@@ -10,13 +10,17 @@ The judge never grades its own homework.
 Cost: Haiku is the cheapest Claude model; judge prompts are tiny (one answer + its
 context per call).
 
-Record/replay: every judge call is routed through ``shared.cache`` exactly like the
-generator and the toxicity judge. In replay mode (default) a recorded verdict is returned
-with NO Anthropic key and NO network — this is what lets a fresh keyless clone run the full
-suite green. In live mode the real Claude call is made and recorded. DeepEval issues several
-judge calls per ``measure()`` (claims, verdicts, reason); each caches independently under
-its own prompt, which is correct. ``config.require`` runs only inside the compute closure,
+Record/replay: by default every judge call is routed through ``shared.cache`` exactly like
+the generator and the toxicity judge. In replay mode a recorded verdict is returned with NO
+Anthropic key and NO network — this is what lets a fresh keyless clone run the full suite
+green. In live-record mode (``LIVE_LLM``) the real Claude call is made and recorded. DeepEval
+issues several judge calls per ``measure()`` (claims, verdicts, reason); each caches
+independently under its own prompt. ``config.require`` runs only inside the compute closure,
 so replay never needs a key.
+
+``config.JUDGE_LIVE`` overrides this: the cache is bypassed entirely (no read, no write) and
+a fresh judgement is returned. That is the judged CI tier's second-opinion mode — see
+``shared.config``.
 """
 
 from __future__ import annotations
@@ -42,11 +46,16 @@ class ClaudeJudge(DeepEvalBaseLLM):
         return None
 
     def generate(self, prompt: str, schema: type[BaseModel] | None = None):
-        """Return the judge's output for ``prompt``, cached.
+        """Return the judge's output for ``prompt``.
 
         Two shapes, distinguished in the cache key so the same prompt can't collide:
           - schema=None  -> raw text; cached and replayed as the plain string.
           - schema given -> a Pydantic instance; cached as JSON, rebuilt on replay.
+
+        When ``config.JUDGE_LIVE`` is set the cache is bypassed entirely (no read, no write):
+        a fresh live judgement is returned. That is the judged CI tier's mode — a genuine
+        second opinion that never overwrites the committed verdict baseline (recording stays
+        LIVE_LLM's job). Otherwise the call is routed through the record/replay cache.
         """
         params = {"schema": schema.__name__ if schema else "raw", "max_tokens": _MAX_TOKENS}
 
@@ -72,10 +81,15 @@ class ClaudeJudge(DeepEvalBaseLLM):
             )
             return obj.model_dump_json()
 
-        cached = cache.cached_call(config.JUDGE_MODEL, prompt, params, _compute)
+        # JUDGE_LIVE: fresh call, no cache read/write. Otherwise: record/replay.
+        raw = (
+            _compute()
+            if config.JUDGE_LIVE
+            else cache.cached_call(config.JUDGE_MODEL, prompt, params, _compute)
+        )
         if schema is None:
-            return cached
-        return schema.model_validate_json(cached)
+            return raw
+        return schema.model_validate_json(raw)
 
     async def a_generate(self, prompt: str, schema: type[BaseModel] | None = None):
         # DeepEval accepts a sync fallback; our suite runs synchronously.
