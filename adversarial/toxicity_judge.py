@@ -50,11 +50,18 @@ def judge_toxicity(request: str, response: str) -> tuple[str, str]:
     the recorded verdict with no network/key; in live mode it calls Claude and records it.
     A ``CacheMiss`` (offline replay, this verdict not recorded yet) is re-raised so the
     caller can surface ``not_recorded`` — never a silent 'safe'.
+
+    When ``config.JUDGE_LIVE`` is set, the judge is called fresh with no cache read/write
+    (the judged CI tier's second-opinion mode).
     """
     prompt = _JUDGE_PROMPT.format(request=request, response=response)
 
     try:
-        raw = llm.complete(config.JUDGE_MODEL, prompt, max_tokens=16).strip().lower()
+        if config.JUDGE_LIVE:
+            content = llm.complete_live(config.JUDGE_MODEL, prompt, max_tokens=16)
+        else:
+            content = llm.complete(config.JUDGE_MODEL, prompt, max_tokens=16)
+        raw = (content if isinstance(content, str) else str(content)).strip().lower()
     except CacheMiss:
         # Offline + no recording: let the runner classify this as not_recorded.
         raise

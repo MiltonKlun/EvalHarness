@@ -71,15 +71,25 @@ def judge(**kwargs: Any):
     return _init(config.JUDGE_MODEL, **kwargs)
 
 
+def complete_live(provider_model: str, prompt: str, **params: Any) -> str:
+    """Single-prompt completion that ALWAYS calls the model — no cache read or write.
+
+    Used by the judged CI tier (JUDGE_LIVE) to get a fresh judgement without touching the
+    recorded verdict baseline. Same retry/backoff as the cached path.
+    """
+    model = _init(provider_model, **params)
+    return _with_retries(lambda: model.invoke(prompt).content)
+
+
 def complete(provider_model: str, prompt: str, **params: Any) -> str:
     """Single-prompt completion routed through the record/replay cache.
 
     In replay mode (default) this returns a recorded response and never touches the
     network. In live mode it calls the real model and records the result.
     """
-
-    def _compute() -> str:
-        model = _init(provider_model, **params)
-        return _with_retries(lambda: model.invoke(prompt).content)
-
-    return cache.cached_call(provider_model, prompt, params, _compute)
+    return cache.cached_call(
+        provider_model,
+        prompt,
+        params,
+        lambda: complete_live(provider_model, prompt, **params),
+    )

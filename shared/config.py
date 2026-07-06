@@ -74,6 +74,13 @@ LIVE_LLM = os.getenv("LIVE_LLM", "0").strip().lower() in {"1", "true", "yes", "o
 # LIVE_LLM falsy this flag is a no-op (replay mode already never calls the model).
 RECORD_MISSING = os.getenv("RECORD_MISSING", "0").strip().lower() in {"1", "true", "yes", "on"}
 
+# JUDGE_LIVE makes the CLAUDE JUDGE (not the generator) call fresh — bypassing the verdict
+# cache entirely: no read, no write. This is the judged CI tier's switch: it replays the
+# recorded Gemini answers (LIVE_LLM stays 0, no generator drift) but gets a genuine second
+# opinion from a live judge, without silently overwriting the committed verdict baseline.
+# Recording verdicts remains LIVE_LLM's job. Independent of LIVE_LLM/RECORD_MISSING.
+JUDGE_LIVE = os.getenv("JUDGE_LIVE", "0").strip().lower() in {"1", "true", "yes", "on"}
+
 CACHE_DIR = _REPO_ROOT / "evals" / "cache"
 
 
