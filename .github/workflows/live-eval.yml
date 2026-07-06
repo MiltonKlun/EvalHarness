@@ -36,6 +36,23 @@ jobs:
           uv venv
           uv pip install -e ".[dev]"
 
+      - name: Record metrics-over-time row + enforce the regression gate
+        # RUNS FIRST, on the pristine checkout, on purpose. NOT continue-on-error: this is
+        # the drift alarm. record_history replays the COMMITTED recordings (LIVE_LLM=0),
+        # appends one row, then fails (exit 1) if a suite mean dropped beyond thresholds.yaml's
+        # max_mean_drop — OR if case coverage shrank — versus the last committed row.
+        #
+        # Why first: the LIVE steps below re-record fresh Gemini answers onto the runner's
+        # cache; a mid-run quota 429 leaves that footprint partial, which previously truncated
+        # this row to 18/21 cases and excluded the drifted cases from the very means the gate
+        # checks. Running before any live step guarantees a full 21-case, like-for-like compare
+        # against the committed baseline. Live-drift *detection* is the job of the steps below
+        # (their reports) and the meta-eval floor step; this step is the committed-baseline gate.
+        env:
+          LIVE_LLM: "0"
+        run: |
+          uv run python -m evals.record_history | tee history-report.txt
+
       - name: Functional eval — LIVE (real Gemini + Claude; detects drift)
         id: liveeval
         continue-on-error: true # quota 429s shouldn't fail the scheduled job
@@ -53,6 +70,16 @@ jobs:
         continue-on-error: true
         run: uv run python -m meta_eval.run --live | tee meta-eval-report.txt
 
+      - name: Enforce judge-drift floors (accuracy >= 80%, kappa >= 0.60)
+        # NOT continue-on-error: the SECOND drift alarm. The step above re-recorded
+        # meta_eval/scores.json against the FRESH live judge; this runs the floor assertions
+        # over those fresh scores, so a judge that degraded below the floors turns the
+        # scheduled run RED (fulfilling the README's "if a future Claude version degrades, the
+        # suite goes red"). Known edge: if the --live step 429'd/errored, scores.json is the
+        # committed baseline and this checks the stale (passing) scores — acceptable; the row
+        # gate and live reports still surface the outage.
+        run: uv run python -m pytest meta_eval/test_meta_eval.py -q
+
       - name: Stochasticity / determinism probe
         continue-on-error: true
         # --delay 13 keeps the probe under the free-tier ~5 requests/minute cap; without it
@@ -61,22 +88,6 @@ jobs:
           uv run python -m evals.determinism_experiment \
             --samples "${{ github.event.inputs.samples || '3' }}" --delay 13 | tee determinism-report.txt
 
-      - name: Record metrics-over-time row + enforce the regression gate
-        # NOT continue-on-error: this is the drift alarm. record_history appends the row
-        # and then fails (exit 1) if a suite mean dropped beyond thresholds.yaml's
-        # max_mean_drop versus the last committed row — a genuine degradation turns the
-        # scheduled run RED instead of being silently swallowed.
-        #
-        # LIVE_LLM=0 here (overriding the job default) on purpose: the gate must compare a
-        # COMPLETE, stable measurement against the committed baseline. The live drift-detection
-        # calls happen in the steps above (their reports show drift); this step replays the
-        # committed recordings so a mid-run quota 429 can't truncate the suite and false-fire
-        # the gate. The recordings are only updated deliberately (reviewed re-record), so this
-        # is a like-for-like regression check, not a re-measurement.
-        env:
-          LIVE_LLM: "0"
-        run: |
-          uv run python -m evals.record_history | tee history-report.txt
 
       - name: Upload reports
         if: always()

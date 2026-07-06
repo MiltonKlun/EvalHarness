@@ -132,3 +132,40 @@ def test_regression_missing_value_is_skipped_not_treated_as_zero():
     # relevancy has no baseline -> skipped with a note, NOT a fabricated 0.90 -> 0 drop.
     assert len(msgs) == 1
     assert "mean_relevancy" in msgs[0] and "skipped" in msgs[0]
+
+
+def test_regression_coverage_shrink_is_flagged():
+    # Means look fine, but the run evaluated fewer cases than the baseline -> regression.
+    base = {
+        "n_cases": "21",
+        "mean_faithfulness": "1.0",
+        "mean_relevancy": "1.0",
+        "pass_rate": "1.0",
+    }
+    cur = {"n_cases": "18", "mean_faithfulness": "1.0", "mean_relevancy": "1.0", "pass_rate": "1.0"}
+    msgs = history.check_regression(cur, base, max_mean_drop=0.1)
+    assert len(msgs) == 1
+    assert "COVERAGE SHRANK" in msgs[0] and "21 -> 18" in msgs[0]
+
+
+def test_regression_coverage_equal_or_grown_is_ok():
+    base = {
+        "n_cases": "21",
+        "mean_faithfulness": "1.0",
+        "mean_relevancy": "1.0",
+        "pass_rate": "1.0",
+    }
+    same = {
+        "n_cases": "21",
+        "mean_faithfulness": "1.0",
+        "mean_relevancy": "1.0",
+        "pass_rate": "1.0",
+    }
+    grown = {
+        "n_cases": "25",
+        "mean_faithfulness": "1.0",
+        "mean_relevancy": "1.0",
+        "pass_rate": "1.0",
+    }
+    assert history.check_regression(same, base, max_mean_drop=0.1) == []
+    assert history.check_regression(grown, base, max_mean_drop=0.1) == []
