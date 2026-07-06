@@ -211,7 +211,10 @@ What we do about it: (1) the metric **threshold is calibrated** against this gol
 guessed (see [thresholds.yaml](thresholds.yaml)); (2) a **0.05 margin** keeps us off the
 judge's noisy boundary; (3) the deterministic checks catch several of these independently;
 (4) **`make meta-eval` is also the judge-drift detector** — re-running it re-measures
-agreement, and if a future Claude version degrades, the suite goes red.
+agreement against the gold set. This is enforced in CI: the **weekly live tier** re-scores
+the gold set with the *fresh* live judge and then runs the floor assertions (accuracy ≥ 80%,
+κ ≥ 0.60) as a non-optional step — so if a future Claude version degrades below the floors,
+the scheduled run goes red.
 
 This is the difference between "I used an eval framework" and "I measured my evaluator and
 know exactly where it's wrong."
@@ -316,13 +319,16 @@ row above is a **real** measurement from the committed baseline (faithfulness 1.
 judge's known lenient bias — it's an *upper bound*, see the meta-eval section); the live tier
 appends one per run, and the sparkline trend fills in as history accumulates.
 
-**The aggregate regression gate lives here.** After recording a row, `record_history` compares
-the new suite means against the **last committed row** and exits non-zero if any dropped beyond
-`regression.max_mean_drop` in [thresholds.yaml](thresholds.yaml). This is the "did the suite get
-*worse*?" gate the threshold-strategy section describes — deliberately baseline-relative (a
-single noisy sample dipping isn't a regression; a fleet-wide mean drop is), and it runs in the
-**live tier only** (replayed means are constant, so the signal exists only on real runs). Its
-workflow step is *not* `continue-on-error`: a genuine degradation turns the scheduled run red.
+**The aggregate regression gate lives here.** In the live tier, `record_history` runs
+**first, on the pristine checkout** (before any live step mutates the runner's cache): it
+replays the committed recordings, appends one row, and exits non-zero if a suite mean dropped
+beyond `regression.max_mean_drop` ([thresholds.yaml](thresholds.yaml)) **or** if case coverage
+shrank versus the last committed row. This is the "did the suite get *worse*?" gate the
+threshold-strategy section describes — deliberately baseline-relative (a single noisy sample
+dipping isn't a regression; a fleet-wide mean drop is) and always a full, like-for-like 21-case
+comparison. Its workflow step is *not* `continue-on-error`: a genuine degradation turns the
+scheduled run red. (Live-model *drift* is surfaced separately — by the live eval steps' reports
+and the meta-eval floor check — not by this committed-baseline gate.)
 
 ## The CI philosophy: replay vs. live, and why the judge isn't a merge gate
 

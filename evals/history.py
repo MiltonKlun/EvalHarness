@@ -120,8 +120,22 @@ def check_regression(current: dict, baseline: dict, max_mean_drop: float) -> lis
     Empty list = pass. A metric that is missing/None on either side is skipped with an
     explanatory message (never silently treated as 0 — that would fabricate a regression).
     ``current`` and ``baseline`` are row dicts (values may be floats or CSV strings).
+
+    Coverage guard: if the current run evaluated FEWER cases than the baseline
+    (``n_cases`` shrank), that is itself a regression — the means are computed over a
+    smaller, non-comparable set and could be hiding drift on the missing cases. An
+    *increase* in n_cases is fine (the dataset grew).
     """
     messages: list[str] = []
+
+    cur_n = _as_float(current.get("n_cases"))
+    base_n = _as_float(baseline.get("n_cases"))
+    if cur_n is not None and base_n is not None and cur_n < base_n:
+        messages.append(
+            f"n_cases: COVERAGE SHRANK — {int(base_n)} -> {int(cur_n)} cases; "
+            f"the means below are over a smaller, non-comparable set"
+        )
+
     for metric in _REGRESSION_METRICS:
         cur = _as_float(current.get(metric))
         base = _as_float(baseline.get(metric))
