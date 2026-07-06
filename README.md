@@ -11,10 +11,10 @@ eyeball. The system under test (a small RAG agent on **Google Gemini**) is delib
 boring — the **tests are the product**. The evaluator is **Anthropic Claude**, a
 *different model family* from the generator, so the judge never grades its own homework.
 
-> 🚧 **Status:** Phases 0–6 complete — foundation, RAG app, functional eval suite,
-> three-tier CI, adversarial red-team, agent-reliability, and meta-eval. Phase 7
-> (narrative & ship polish) in progress — see
-> [LLM_Eval_Harness_Build_Plan.md](LLM_Eval_Harness_Build_Plan.md).
+> ✅ **Status: v1.1 — complete and green.** All three suites (functional evals, adversarial
+> red-team, agent reliability), the meta-eval, and the three-tier CI are built, tested, and
+> passing. The full suite runs offline and keyless; the judged and live tiers add real
+> Gemini/Claude calls for drift detection.
 
 ## Why testing AI differs from traditional assertions
 
@@ -360,7 +360,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Author
 
-**Milton Klun**  
+**Milton Klun**
 *QA Automation Engineer | AI Quality Testing*
 
 <div align="left">
