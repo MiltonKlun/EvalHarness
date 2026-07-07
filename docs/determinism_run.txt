@@ -15,3 +15,23 @@ Determinism experiment - 3 samples/case, 13.0s inter-call delay, model=google_ge
   [IDENTICAL         ] How long is raw inspection footage retained?
 
 Takeaway: any 'DISTINCT' result under max_pinned is direct evidence that temperature=0 + seed does NOT guarantee determinism on Gemini; all-IDENTICAL means this run did not surface variance (pinning held for this small factual subset).
+
+---
+
+## Cross-session observation (2026-07-04) — the other half of the finding
+
+Within the run above (single session), pinning held: all IDENTICAL. But two days later the
+weekly live CI run (GitHub Actions run 28697905208) re-recorded fresh answers for the 5
+functional cases that completed before the daily quota ran out, and the pristine-replay
+regression gate then SKIPPED 3 of them — single_founders, single_kestrel2_thermal,
+multihop_thermal_model — because their fresh output no longer matched the committed
+recording's cache key. So >=3 of 5 re-sampled cases produced DIFFERENT output across sessions,
+with every knob still pinned (temperature=0, top_p/top_k, seed, same prompt, same model).
+
+Caveats: (1) this captures the whole pinned retrieval+generation PIPELINE — it does not
+isolate retrieval (embedding order) vs generation text; (2) it was an incidental by-product of
+a quota-limited run, not a controlled N-sample study.
+
+Conclusion: within a session pinning held; across sessions it did not. Reproducibility here
+comes from the COMMITTED RECORDINGS, not from pinning — which is the whole reason record/replay
+exists.
