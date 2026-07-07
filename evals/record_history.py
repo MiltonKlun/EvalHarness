@@ -55,6 +55,11 @@ def run(deterministic_only: bool, gate: bool = True) -> None:
 
     row = history.record_run(reports, git_sha=_git_sha())
     print(f"Recorded run: {row}")
+    # Machine-readable signal for CI: did the METRICS (not the timestamp/sha) change vs the
+    # last row? The auto-commit step commits the row only when this is yes — a flat trend
+    # must not spawn a weekly noise commit.
+    changed = history.metrics_changed(row, baseline)
+    print(f"METRICS_CHANGED: {'yes' if changed else 'no'}")
     print()
     print(history.render(blocks=history._spark_blocks_for(sys.stdout)))
 
