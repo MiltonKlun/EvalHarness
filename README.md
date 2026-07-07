@@ -23,10 +23,11 @@ output, forever — green or red, no middle ground. Testing an LLM breaks every 
 that line rests on:
 
 - **The output isn't fixed.** The same prompt can give a different answer on the next
-  call. `temperature=0` doesn't save you — this repo *measures* it: even with every knob
-  pinned (`temperature=0` + `seed` + `top_p`/`top_k`), Gemini's output still varies. We
-  don't claim determinism we can't deliver; we quantify the residual variance instead
-  (`python -m evals.determinism_experiment`).
+  call. `temperature=0` doesn't save you — this repo *measures* it: within one session,
+  pinning every knob (`temperature=0` + `seed` + `top_p`/`top_k`) held; but the pinned
+  pipeline still produced **different output across sessions two days apart**. We don't claim
+  a determinism we can't deliver — reproducibility comes from committed recordings, not from
+  pinning ([the finding, measured](#determinism-measured-not-assumed--the-stochasticity-finding)).
 - **"Correct" isn't exact-match.** There's no single right string for *"Which drone can
   fly in 20 m/s wind?"*. What you actually care about is *fuzzy* qualities — is the answer
   **grounded** in the source documents, **relevant**, free of **hallucination**, and
@@ -242,12 +243,30 @@ raw log: [docs/determinism_run.txt](docs/determinism_run.txt)):
 
 So *in this run*, pinning held: no variance surfaced, even in `near_det`. That is a real
 result — but the honest reading is **"no variance observed here," not "determinism is
-guaranteed."** Google's own docs call the `seed` **best-effort** and a `temperature=0`
-response only "*mostly* deterministic," so a single clean run over a small factual subset
-doesn't prove the model can't vary — it just didn't, this time. That is precisely why the
-experiment **re-runs in the weekly live tier**: if a future run turns up a `DISTINCT` result
-(especially under `max_pinned`), that's direct evidence `temperature=0 + seed` isn't a
-determinism guarantee, captured the moment it happens rather than assumed up front.
+guaranteed."**
+
+**And then, two days later, it didn't hold.** This is the other half of the finding — and it
+came, unplanned, from the live CI tier itself. On 2026-07-04 the weekly live run
+([run 28697905208](https://github.com/MiltonKlun/EvalHarness/actions/runs/28697905208))
+re-recorded fresh answers for the 5 functional cases that completed before the day's quota
+ran out. The pristine-replay gate step then **skipped 3 of those cases** (`single_founders`,
+`single_kestrel2_thermal`, `multihop_thermal_model`) because their fresh output no longer
+matched the committed recording's cache key — i.e. **≥3 of the 5 re-sampled cases produced
+different output than two days earlier, with every knob still pinned** (`temperature=0`,
+`top_p`/`top_k`, `seed`, identical prompt template, same pinned model string).
+
+Two honest caveats on that cross-session result: (1) the capture is of the **whole pinned
+retrieval+generation pipeline** — it does *not* isolate whether the retrieval order shifted
+(embeddings) or the generation text moved, only that the end-to-end output changed; and (2) it
+was an incidental by-product of a quota-limited run, not a controlled N-sample study.
+
+Put together, the two findings tell one story: **within a single session, pinning held;
+across sessions, it did not.** So reproducibility here does not come from pinning knobs — it
+comes from the **committed recordings**. That is the entire justification for record/replay as
+an architecture: the only way to get a byte-stable baseline out of a best-effort-deterministic
+model is to capture its output once and replay it. And it is *why* the experiment keeps
+re-running in the weekly live tier — a future `DISTINCT` under `max_pinned` is direct evidence
+captured the moment it happens, not assumed up front.
 
 Either way, the design conclusion is the same — and it's *why* the harness is built the way
 it is:
