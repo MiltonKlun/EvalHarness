@@ -169,3 +169,49 @@ def test_regression_coverage_equal_or_grown_is_ok():
     }
     assert history.check_regression(same, base, max_mean_drop=0.1) == []
     assert history.check_regression(grown, base, max_mean_drop=0.1) == []
+
+
+# --- metrics_changed (the auto-commit decision) ------------------------------------
+
+
+def test_metrics_changed_true_when_no_baseline():
+    assert history.metrics_changed({"pass_rate": "1.0"}, None) is True
+
+
+def test_metrics_changed_ignores_timestamp_and_sha():
+    base = {
+        "timestamp": "2026-01-01T00:00:00+00:00",
+        "git_sha": "aaaa",
+        "n_cases": "21",
+        "pass_rate": "1.0",
+        "mean_faithfulness": "1.0",
+        "mean_relevancy": "1.0",
+        "judge_errors": "0",
+    }
+    # Same metrics, different timestamp + sha -> NOT changed (no noise commit).
+    cur = {**base, "timestamp": "2026-02-02T00:00:00+00:00", "git_sha": "bbbb"}
+    assert history.metrics_changed(cur, base) is False
+
+
+def test_metrics_changed_true_when_a_metric_moves():
+    base = {
+        "n_cases": "21",
+        "pass_rate": "1.0",
+        "mean_faithfulness": "1.0",
+        "mean_relevancy": "1.0",
+        "judge_errors": "0",
+    }
+    cur = {**base, "mean_faithfulness": "0.90"}  # judge drifted
+    assert history.metrics_changed(cur, base) is True
+
+
+def test_metrics_changed_float_normalization():
+    base = {
+        "n_cases": "21",
+        "pass_rate": "1.0",
+        "mean_faithfulness": "1.0",
+        "mean_relevancy": "1.0",
+        "judge_errors": "0",
+    }
+    cur = {**base, "mean_faithfulness": "1.0000"}  # same value, different string
+    assert history.metrics_changed(cur, base) is False

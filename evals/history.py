@@ -151,6 +151,31 @@ def check_regression(current: dict, baseline: dict, max_mean_drop: float) -> lis
     return messages
 
 
+# Metric fields that define whether two runs are "the same result". Excludes timestamp and
+# git_sha (which always differ) so a flat trend doesn't generate weekly noise commits.
+_METRIC_FIELDS = ("n_cases", "pass_rate", "mean_faithfulness", "mean_relevancy", "judge_errors")
+
+
+def metrics_changed(current: dict, baseline: dict | None) -> bool:
+    """True if any metric field differs from the baseline row (or there is no baseline).
+
+    Compares the fields in ``_METRIC_FIELDS`` as strings-normalized-via-float where possible,
+    so "1.0" and "1.0000" compare equal. Used to decide whether a live run's appended row is
+    worth committing back (a changed metric = drift evidence) or is flat noise to drop.
+    """
+    if baseline is None:
+        return True
+    for field in _METRIC_FIELDS:
+        cur, base = current.get(field), baseline.get(field)
+        cur_f, base_f = _as_float(cur), _as_float(base)
+        if cur_f is not None and base_f is not None:
+            if cur_f != base_f:
+                return True
+        elif str(cur) != str(base):  # one side non-numeric/missing — compare raw
+            return True
+    return False
+
+
 # Unicode block sparkline (8 levels) with an ASCII fallback for consoles that can't encode
 # it (notably the default Windows cp1252 terminal). render() picks based on the stream.
 _SPARK_BLOCKS = "▁▂▃▄▅▆▇█"

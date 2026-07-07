@@ -303,7 +303,9 @@ A pass/fail tells you the state today. It won't show a metric **slowly sliding**
 threshold over weeks — exactly the signature of model drift. So each live run appends one
 summary row (suite-mean faithfulness, relevancy, pass-rate, judge-error count, git SHA) to a
 committed CSV ([`evals/history/runs.csv`](evals/history/runs.csv)), and `make history` renders
-the trend:
+the trend. The weekly live tier **auto-commits that row back to `main`** — but only when the
+run's metrics actually changed, so the trend grows on real movement and stays quiet on a flat
+week (no noise commits):
 
 ```text
 timestamp            sha        pass  faith  relev jerr

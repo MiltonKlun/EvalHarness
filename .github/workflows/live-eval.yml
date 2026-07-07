@@ -22,6 +22,8 @@ on:
 jobs:
   live:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # to auto-commit the eval history row back to main (metrics-changed only)
     env:
       LIVE_LLM: "1" # REAL calls — this is the drift check
       DETERMINISTIC_ONLY: "0"
@@ -52,6 +54,27 @@ jobs:
           LIVE_LLM: "0"
         run: |
           uv run python -m evals.record_history | tee history-report.txt
+
+      - name: Auto-commit the history row (only if the METRICS changed)
+        # Runs right after the gate (and only if it passed — a regressed row is never
+        # committed). The row always appends a new line (timestamp+sha differ every run), so
+        # committing unconditionally would spam a noise commit weekly. We commit ONLY when
+        # record_history reported METRICS_CHANGED: yes — i.e. the run's numbers actually moved
+        # (drift evidence worth keeping). Otherwise we drop the noise row and skip.
+        # Only evals/history/runs.csv is committed; scores.json/cache are artifact-only.
+        run: |
+          if grep -q "METRICS_CHANGED: yes" history-report.txt; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add evals/history/runs.csv
+            git commit -m "chore(history): append weekly eval row [skip ci]"
+            git pull --rebase origin main
+            git push
+            echo "Committed a new history row (metrics changed)."
+          else
+            echo "Metrics identical to baseline — dropping the noise row, nothing to commit."
+            git checkout -- evals/history/runs.csv
+          fi
 
       - name: Functional eval — LIVE (real Gemini + Claude; detects drift)
         id: liveeval
@@ -101,6 +124,12 @@ jobs:
             determinism-report.txt
             history-report.txt
             evals/history/runs.csv
+            meta_eval/scores.json
+            evals/cache/
+          # scores.json = the FRESH live judge scores (never auto-committed — the committed
+          # scores are the calibration baseline, human-reviewed only). evals/cache/ = the
+          # fresh re-recordings from the live steps — this is what makes "review drift before
+          # updating the baseline" actionable (diff the artifact cache vs the committed one).
 
       - name: Summary
         if: always()

@@ -68,8 +68,13 @@ gracefully, not a build failure:
 2. **A sustained daily-cap 429** surfaces after the retries — that's a genuine limit, not a
    blip — and the live job's steps run with **`continue-on-error: true`**, so the scheduled run
    uploads whatever it produced instead of going red on quota.
-3. **Re-recordings are an artifact, not auto-committed** — drift is reviewed before the baseline
-   is updated.
+3. **Fresh re-recordings and judge scores are uploaded as a run artifact, not auto-committed**
+   — the live steps' fresh `evals/cache/` and `meta_eval/scores.json` land in the
+   `live-eval-reports` artifact so drift can be diffed against the committed baseline and
+   reviewed by a human before the baseline is updated. `scores.json` is deliberately never
+   auto-committed (it is the calibration baseline). The **one** thing the live tier commits
+   back automatically is the metrics-over-time row (`evals/history/runs.csv`) — and only when
+   the run's metrics actually changed, so a flat trend never spawns a weekly noise commit.
 
 > ⚠️ **Re-recording cost.** Changing the system prompt invalidates every cached agent response
 > (the cache keys on the prompt), forcing a fresh re-record of the functional **and**
