@@ -15,14 +15,14 @@
 
 </div>
 
-> Testing an LLM breaks the one assumption a unit test rests on: that the same
+> Testing an LLM breaks the one assumption a unit test rests on: Determinism, that the same
 > input gives the same output. `assert answer(q) == "..."` is a category error
-> when the answer is stochastic, "correct" isn't a fixed string, the model
+> when the answer is Stochastic, "correct" isn't a fixed string, the model
 > drifts under you, and your only grader is *another* fallible model.
 
-The **system under test** is a deliberately boring RAG agent on **Google Gemini**.
+The **system under test** is a deliberately simple RAG agent on **Google Gemini**.
 The **evaluator** is **Anthropic Claude** — a *different model family*, so the judge
-never grades its own homework. The interesting engineering is entirely in **how you
+never grades its own work. The engineering goal is entirely in **how you
 test something that won't hold still**.
 
 > ✅ **Status: v1.2 — complete and green.** Three suites + meta-eval + three-tier CI,
@@ -35,12 +35,12 @@ test something that won't hold still**.
 
 Asking an AI to "grade this answer" gets you a plausible number fast. EvalHarness gets
 you a *defensible* one — and treats LLM behaviour as something you can regression-test
-in CI, honestly. Four things you get that raw prompting doesn't:
+in CI. Four things you get that raw prompting doesn't:
 
 | | You gain | What it means |
 | --- | --- | --- |
 | 🎯 | **Fuzzy metrics, not `==`** | Grades **groundedness / relevancy / abstention / safety** — the qualities that actually matter — against thresholds **calibrated to a hand-labeled gold set**, not vibes. |
-| 🔀 | **"Code regressed" ≠ "model drifted"** | CI is split into **three tiers** so those two questions never get conflated — a flaky paid judge never blocks a merge. |
+| 🔀 | **"Code regressed" ≠ "model drifted"** | CI is split into **three tiers** so those two questions never get conflated — a flaky judge never blocks a merge. |
 | 🧪 | **A measured judge** | The Claude judge is itself measured against 20 human-labeled cases (**80% acc, κ 0.60**) with a *documented* lenient bias — CI goes red if it degrades. |
 | 📼 | **Nothing hardcoded** | Record/replay caches the expensive stochastic call once; the metric *code* re-runs live over it every time — free, keyless, reproducible. |
 
@@ -55,7 +55,7 @@ make install            # uv venv && uv pip install -e ".[dev]"
 | Door | Command | What you get |
 | --- | --- | --- |
 | **1. SEE IT** | `make test` | The full suite, **offline, no API keys** (~100 tests: functional evals, red-team, agent reliability, meta-eval). |
-| **2. CATCH A REGRESSION** | `python -m evals.regression_demo` | The eval suite going red on a hallucinated answer — the core promise, live, $0. |
+| **2. REGRESSION** | `python -m evals.regression_demo` | The eval suite going red on a hallucinated answer — the core promise, live, $0. |
 | **3. RUN IT LIVE** | `python -m app.agent "Which drone can fly in 20 m/s wind?"` | Drive the real Gemini agent end-to-end (needs `GOOGLE_API_KEY`). |
 
 `make help` lists every target. The offline suite needs no keys and no vector store.
@@ -64,12 +64,12 @@ make install            # uv venv && uv pip install -e ".[dev]"
 
 ## ⚙️ How it works
 
-A boring Gemini RAG agent is probed by four suites; an *independent* Claude judge grades
-the fuzzy metrics; a record/replay cache makes it all reproducible offline.
+A simple Gemini RAG agent is probed by four suites; an *independent* Claude judge grades
+the metrics; a record/replay cache makes it all reproducible offline.
 
 ```mermaid
 flowchart TB
-    subgraph SUT["System under test (deliberately boring)"]
+    subgraph SUT["System under test"]
         direction LR
         Q["Question"] --> RET["Retriever<br/>(committed FAISS store)"]
         RET --> RAG["RAG agent<br/>(LangGraph + Gemini)"]
@@ -103,7 +103,7 @@ flowchart TB
 ```
 
 **Three independence properties make the numbers trustworthy:** generator is Gemini,
-judge is Claude (different families); the dataset and attack payloads are **hand-authored**
+judge is Claude (different families, avoid own work bias); the dataset and attack payloads are **hand-authored**
 (the system can't teach to its own test); and the **gold set calibrates the thresholds**,
 so pass/fail lines are defended, not guessed.
 
@@ -135,10 +135,8 @@ flowchart LR
 | **⚖️ Judged** (`judged-eval.yml`) | manual / PR label | Anthropic | *"the metric logic holds against a **live** judge"* — non-blocking on purpose |
 | **🌐 Live drift** (`live-eval.yml`) | weekly cron | Google + Anthropic | *"the model didn't drift"* — real calls + the determinism probe |
 
-> **Why the judge is off the blocking path:** it's non-deterministic (it once flagged a
-> correct answer as a fail) *and* costs money. Gating merges on a flaky paid check breeds
-> spurious red builds — so it runs opt-in, never as a required PR check. Intentional
-> hygiene, not a gap.
+> **Why the judge is off the blocking path:** it's non-deterministic *and* costs money. Gating merges on a flaky paid check breeds
+> potential red builds — so it runs opt-in, never as a required PR check. Intentional hygiene, not a gap.
 
 ---
 
@@ -164,7 +162,7 @@ Real results the harness produced — not features, *evidence*.
 
 ### 🎭 The judge is measured, not trusted — [`make meta-eval`](adversarial/FINDINGS.md)
 
-We grade with Claude, so the obvious question is *how do we know the judge is right?*
+We grade with Claude, so the question is *how do we know the judge is right?*
 We measure it against **20 hand-labeled cases**:
 
 | metric | value |
@@ -175,8 +173,8 @@ We measure it against **20 hand-labeled cases**:
 
 The errors aren't random — a **systematic lenient bias**: the judge passes a claim that's
 *true in the real world* but absent from the context (*"Aberdeen is in the UK"* — true, not
-in the docs). So our faithfulness scores are an **upper bound** on true groundedness, and we
-say so. The threshold is **calibrated** to this set (a 0.05 margin keeps us off the noisy
+in the docs). So our faithfulness scores are an **upper bound** on true groundedness. 
+The threshold is **calibrated** to this set (a 0.05 margin keeps us off the noisy
 boundary), and the **weekly live tier re-scores with the fresh judge and fails if accuracy
 drops below 80 % / κ 0.60**. Full write-up: [JUDGE-001](adversarial/FINDINGS.md).
 
@@ -190,7 +188,7 @@ Measured, not assumed — and it tells a two-part story:
 | **Across sessions** (2026-07-04 live run, two days later) | **≥3 of 5** re-sampled cases produced **different output** — pinning *didn't* hold |
 
 The conclusion the whole architecture rests on: **reproducibility comes from committed
-recordings, not from pinning knobs.** *(Honest caveat: the cross-session capture is of the
+recordings, not from pinning knobs.** *(the cross-session capture is of the
 whole pinned pipeline; it doesn't isolate retrieval vs. generation.)*
 
 ### 🐛 Three real defects, found and fixed — [`adversarial/FINDINGS.md`](adversarial/FINDINGS.md)
@@ -225,9 +223,9 @@ against regression* — caught all three:
 ## 📐 Key design choices
 
 - **Record/replay is the backbone** — pay for the stochastic call once, commit it, then
-  re-run the free deterministic metric *code* over it forever. A cache miss in replay mode
+  re-run the free deterministic metric *code* over it. A cache miss in replay mode
   is a **hard failure**, never a silent live call.
-- **Thresholds are calibrated, not guessed** — each pass line is tuned against the Phase-6
+- **Thresholds are calibrated, not guessed** — each pass line is tuned against the
   gold set, expressed as both per-answer gates and a baseline-relative regression gate.
 - **Graceful degradation over hard dependencies** — LangSmith, live keys, and unrecorded
   cases all *skip cleanly*; the keyless path is always primary.
@@ -254,7 +252,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Author
 
-**Milton Klun**
+**Milton Klun**  
 *QA Automation Engineer | AI Quality Testing*
 
 <div align="left">
