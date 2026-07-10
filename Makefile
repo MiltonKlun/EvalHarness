@@ -52,6 +52,12 @@ meta-eval: ## Challenge the judge: replay cached judge scores, report agreement 
 meta-eval-live: ## Meta-eval LIVE: real Claude judge over the gold set, re-records scores (needs ANTHROPIC key)
 	LIVE_LLM=1 uv run python -m meta_eval.run --live
 
+cross-judge: ## Cross-judge spot-check: replay Claude vs OpenAI judge on the gold set, report (dis)agreement
+	uv run python -m meta_eval.cross_judge
+
+cross-judge-live: ## Cross-judge LIVE: score the gold set with a 2nd judge (OpenAI), records scores (needs OPENAI key)
+	LIVE_LLM=1 uv run python -m meta_eval.cross_judge --live
+
 history: ## Show the eval metrics-over-time trend (drift made visible)
 	uv run python -m evals.history
 
