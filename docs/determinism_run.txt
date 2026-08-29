@@ -70,3 +70,33 @@ therefore impossible on the free tier's 20/day without spanning ~5 days.
 
 STATUS: study incomplete. No README claim has been changed on the strength of this partial
 run. See V1.3_IMPROVEMENTS.md for how to resume.
+
+---
+
+## Protocol decision (2026-08-29): free tier, N=3, one session per day
+
+The study stays on the Gemini FREE TIER by choice, not by constraint. Rationale: the daily cap
+(20 requests) forces one session per calendar day, and a day-separated session is a *stronger*
+cross-session sample than several sessions crammed into one or two days. The cross-session arm
+is the half of this finding that needs evidence, so the constraint pushes in the useful
+direction.
+
+Sizing: a run costs 2 modes x 3 questions x N calls. At N=5 that is 30 calls, which CANNOT
+complete within a 20/day cap — that is exactly what truncated session 1. At **N=3 the run costs
+18 calls** and completes with 2 to spare. So:
+
+  N=3, one complete session per day, >=5 days.
+
+Trade-off, stated honestly: N=3 is weaker than N=5 at *catching* rare within-session variance.
+If output varies 30% of the time, three identical samples miss it ~49% of the time (vs ~24% at
+N=5). What the design buys back is total samples: 5 sessions x N=3 = 15 samples per
+(question, mode), MORE than the 3 x N=5 = 15 originally planned, and spread across 5 distinct
+sessions instead of 3. Per-session sensitivity is lower; cross-session coverage is higher.
+
+Command (identical every day — do not vary it, or the sessions stop being comparable):
+
+    make determinism-day
+    # or: .venv/Scripts/python.exe -m evals.determinism_experiment --samples 3 --delay 13
+
+--delay 13 keeps the run under the ~5 req/min ceiling; the run takes ~4 minutes.
+Append each day's raw output below, dated, whether or not it shows variance.

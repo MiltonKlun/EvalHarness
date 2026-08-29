@@ -58,6 +58,9 @@ cross-judge: ## Cross-judge spot-check: replay Claude vs OpenAI judge on the gol
 cross-judge-live: ## Cross-judge LIVE: score the gold set with a 2nd judge (OpenAI), records scores (needs OPENAI key)
 	LIVE_LLM=1 uv run python -m meta_eval.cross_judge --live
 
+determinism-day: ## One day's determinism session, sized to the Gemini free tier (18 calls, N=3). Run once per day.
+	uv run python -m evals.determinism_experiment --samples 3 --delay 13
+
 history: ## Show the eval metrics-over-time trend (drift made visible)
 	uv run python -m evals.history
 
