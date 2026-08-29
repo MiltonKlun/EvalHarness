@@ -35,3 +35,38 @@ a quota-limited run, not a controlled N-sample study.
 Conclusion: within a session pinning held; across sessions it did not. Reproducibility here
 comes from the COMMITTED RECORDINGS, not from pinning — which is the whole reason record/replay
 exists.
+
+---
+
+## Controlled N-sample study — session 1 of 3 (2026-08-29) — PARTIAL, quota-truncated
+
+Intent (v1.3): convert the cross-session half of this finding from an incidental by-product
+into a deliberate, controlled measurement — N=5 samples/case/mode, repeated across >=3
+sessions on >=2 distinct calendar days, same pinned pipeline every time.
+
+Command: python -m evals.determinism_experiment --samples 5 --delay 0
+
+Result — INCOMPLETE. The run hit the Gemini free-tier DAILY cap
+(GenerateRequestsPerDayPerProjectPerModel-FreeTier, limit: 20 requests/day for
+gemini-2.5-flash) partway through mode=max_pinned, and terminated.
+
+What completed before the cap:
+
+### mode = max_pinned  ({'temperature': 0, 'top_p': 1.0, 'top_k': 1, 'seed': 42})
+  [IDENTICAL         ] Who founded Meridian Robotics?          (N=5)
+  [IDENTICAL         ] Which Meridian drone can fly in 20 m/s wind?  (N=5)
+  -- cap reached; 3rd question and the whole near_det mode did not run --
+
+So: 2 of 3 questions, one of two modes, at N=5 — both IDENTICAL. This is consistent with the
+2026-07-03 within-session result (pinning held within a session) but it is NOT yet the
+controlled study: no cross-session arm has been run under this protocol, and near_det is
+unmeasured for this session.
+
+Quota note: the free tier's ~5 req/MINUTE ceiling did not fire during this run (7 rapid
+consecutive calls succeeded beforehand), but the 20 req/DAY cap did. Those are separate
+quotas; the per-minute limit being absent is NOT evidence that billing is active. A full
+3-session study at N=5 needs 90 calls (2 modes x 3 questions x 5 x 3 sessions) and is
+therefore impossible on the free tier's 20/day without spanning ~5 days.
+
+STATUS: study incomplete. No README claim has been changed on the strength of this partial
+run. See V1.3_IMPROVEMENTS.md for how to resume.
