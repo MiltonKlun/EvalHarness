@@ -1,10 +1,11 @@
 # Evaluating TypeSafe's Jev for EvalHarness
 
-**Status: design review only — NO live Jev calls were made.** `TYPESAFE_API_KEY` was not
-available in this session, and the user elected to proceed without it. Every claim below is
-either (a) sourced from the live TypeSafe docs, (b) sourced from this repo's code, or
-(c) an untested prediction, explicitly marked **[UNTESTED]**. No number in this document was
-measured against Jev. The decisive experiment has *not* been run.
+**Status: MEASURED, 2026-09-21.** 140 live `jev-1.13.0` calls over this repo's own gold set.
+Total spend **$0.0002**. Every number below is measured unless explicitly marked
+**[UNTESTED]**. Raw per-case outputs are in §1.
+
+*(An earlier revision of this file was a design review written without an API key. It has been
+superseded throughout; where a prediction turned out wrong, §7 says so.)*
 
 Docs read: `llms.txt`, `models.md`, `model-jaggedness/jev-1.13.md`, `cookbooks/citation_check.md`,
 plus the official agent skill (`typesafe@typesafe-ai` v0.5.7, installed).
@@ -32,41 +33,58 @@ faithfulness score structurally cannot express** — it collapses "contradicted"
 "unaddressed" into one "not faithful" axis, and a lenient judge resolves the ambiguity
 toward "faithful."
 
-That is a genuine structural argument, and it is why this hypothesis ranks first. It is
-*not* evidence. Whether Jev actually separates those 4 cases is unknown. **[UNTESTED]**
+### Result: Jev separates all four — but the prompt is doing much of the work
 
-**The experiment to run when a key exists** (~20–40 calls, well under $0.01):
+**Headline (tuned criteria, n=20): accuracy 100%, Cohen's κ 1.00, fp=0, fn=0.**
+Judge-A (Claude) on the same set: 80%, κ 0.60, fp=4. All four known false positives landed in
+`says_nothing`:
 
-```python
-from typesafe_sdk import TypeSafeClient, Choice
+| case | Jev | confidence | distribution |
+|---|---|---|---|
+| `g_correct_world_fact_unsupported` | `says_nothing` | 0.76 | says_nothing 0.85 / supports 0.15 |
+| `g_overconfident_inference` | `says_nothing` | 0.95 | says_nothing 0.97 / contradicts 0.03 |
+| `g_invented_specific` | `says_nothing` | 0.53 | says_nothing 0.69 / contradicts 0.31 |
+| `g_hedge_then_invent` | `says_nothing` | 1.00 | says_nothing 1.00 |
 
-client = TypeSafeClient()   # reads TYPESAFE_API_KEY
-for case in gold:           # meta_eval/gold.jsonl, 20 cases
-    result = client.system_one(
-        {"context": case["context"], "answer": case["answer"]},   # state: positional, JSON object
-        {"relation": Choice(
-            instructions="How does `context` relate to the claims made in `answer`?",
-            criteria={
-                "supports": "Every factual claim in `answer` is stated or directly implied by `context`.",
-                "contradicts": "`context` states the opposite of a claim in `answer`.",
-                "says_nothing": "`answer` makes a claim `context` does not address either way — "
-                                "INCLUDING a claim that is true in the real world but absent here.",
-            })},
-        model="jev-1.13.0",   # pin the version; aliases move
-    )
-    ans = result.choices["relation"]
-    ans.choice, ans.probabilities, ans.confidence   # option, full distribution, concentration
-```
+Mapping is a **code** decision, not a model output: `supports`→grounded,
+`contradicts`/`says_nothing`→ungrounded. Scored with this repo's own `meta_eval/stats.py`.
 
-*API verified against the live SDK docs (`sdk/python/usage.md`, `sdk/python/api/clients/sync.md`,
-`primitives/choice.md`) — `state` is positional and may be a JSON object; `criteria` values may be
-descriptive strings; `model` is a valid per-call override; a Choice answer carries
-`choice` / `probabilities` / `confidence`. Not executed.*
+**A perfect score is a reason for suspicion, not celebration.** My criteria text named the
+JUDGE-001 failure mode almost explicitly ("TRUE IN THE REAL WORLD but simply absent", "even if
+`answer` first acknowledges the information is missing"). That is arguably teaching to the
+test, so I ablated it — 3 arms × 20 cases:
 
-Report: per-case option + probability distribution + confidence; accuracy and Cohen's kappa
-via the existing `meta_eval/stats.py`; and specifically whether the 4 known false positives
-land in `says_nothing`. **A null result is publishable** — if Jev also passes them, that is a
-finding about the failure class, not about Jev.
+| arm | criteria | accuracy | errors |
+|---|---|---|---|
+| **A_bare** | option names only, no descriptions | **90%** | `g_correct_world_fact_unsupported` → supports; `g_hedge_then_invent` → supports |
+| **B_generic** | cookbook-style, failure mode unmentioned | **90%** | `g_correct_world_fact_unsupported` → supports; `g_abstention_grounded` → says_nothing |
+| **C_tuned** | names the failure mode (the headline) | **100%** | none |
+
+**This is the most important result in the evaluation.** The 100% is *not* raw model
+capability — it is capability **plus** a prompt written by someone who had already read
+JUDGE-001. Unprompted, Jev reproduces Claude's exact lenient bias:
+`g_correct_world_fact_unsupported` — the "Aberdeen is in the UK" case — fails in **both**
+weaker arms. The honest claim is:
+
+> The three-way Choice *gives you a place to put* "true but unsupported", and Jev will use it
+> **if you describe that bucket explicitly**. The lift comes from the decomposition plus the
+> criteria, not from the model spontaneously being stricter than Claude.
+
+Arm B is also a warning about over-tuning in the other direction: it produced a *false
+negative* (`g_abstention_grounded` → `says_nothing`), i.e. a correct abstention graded as
+unsupported. Judge-A has zero false negatives. Criteria wording moves errors around, not just
+away.
+
+**Stability (3 identical repeats of the tuned arm, 60 calls):** accuracy 100% / 100% / 100%,
+and **0/20 cases changed their chosen option**. But **6/20 cases returned a different
+confidence** across runs — `g_invented_specific` ranged **0.48 → 0.63**, straddling 0.5. So the
+*decision* is reproducible here while the *probability* is not, which matters directly for
+constraint 4: a Jev threshold anywhere near 0.5 would sit on measurement noise. Any future Jev
+cutoff needs the same margin discipline `thresholds.yaml` already applies to judge-A.
+
+**Measured cost and latency:** ~638 input tokens per 20-case run ≈ **$0.000027/run**; all 140
+calls in this investigation cost **~$0.0002** total. Mean latency **0.35 s** (min 0.29, max
+0.93) — roughly an order of magnitude faster than a generative judge call.
 
 **Two design notes that matter more than they look.** First, the criteria text above spells
 out "true in the real world but absent here" explicitly, because the jaggedness page says Jev
@@ -108,27 +126,49 @@ binds. This is an argument against breadth of adoption, and it is independent of
 
 ## 3. Recommendation
 
-**Jev does not enter the metric path. It arrives as a documented spot-check, exactly as
-judge-B did — and only after the meta-eval measures it.**
+**Jev does not enter the metric path — and on the measured evidence, the cheaper move is to
+test the question shape on judge-A first.**
 
-This follows from the repo's own standard (JUDGE-001, ADR-0003) and from TypeSafe's docs,
-which state plainly that typed output guarantees *shape, not truth*, and that calibration
-must be validated on your own data. Nothing here is a special concession to a new vendor; it
-is the rule the project already applies to itself.
+Three things follow from §1, in priority order:
+
+1. **Try the fix without the vendor.** The ablation shows most of the lift came from explicit
+   "true-but-unsupported" criteria, not from Jev being natively stricter. Writing that same
+   boundary into the existing DeepEval faithfulness prompt costs one `make meta-eval` run, adds
+   no dependency, and risks nothing. If it recovers the 4 JUDGE-001 cases, the Jev case largely
+   evaporates. **Do this before adopting anything.**
+2. **If Jev is adopted anyway, it arrives as a spot-check** — exactly as judge-B did, routed
+   through `shared.cache`, with its scores committed, never gating a merge. That follows from
+   the repo's own standard (JUDGE-001, ADR-0003) and from TypeSafe's docs, which state plainly
+   that typed output guarantees *shape, not truth*.
+3. **A 100% on 20 cases is not a licence.** It is one small hand-built set, scored with criteria
+   written by someone who had read the answer key. Treat it as a promising signal, not a result.
+
+Nothing here is a special concession to a new vendor; it is the rule the project already
+applies to itself.
 
 **Independence — the argument holds, and it is stronger than for judge-B.** Generator is
 Gemini, judge-A is Claude, judge-B is OpenAI. Jev is both a fourth family *and* a different
 **kind** of evaluator: constrained typed judgment rather than generated text. Judges A and B
 share an architecture and a failure mode (both are prompted generative LLMs, both can
-rationalize). A System One model can fail, but it cannot fail in quite the same way. That is a
-real independence gain and worth stating in the write-up — **if experiment 1 shows it
-separates the cases.** If it doesn't, the architectural novelty is irrelevant.
+rationalize). A System One model can fail, but it cannot fail in quite the same way.
+
+**Measured, this argument is weaker than it looks.** The ablation showed Jev making *exactly*
+judge-A's mistake on `g_correct_world_fact_unsupported` when the criteria didn't name the
+failure mode. A different architecture did not buy a different failure mode for free — the
+prompt did. Independence of *family* is real; independence of *failure mode* was not
+demonstrated.
 
 Be precise about what the distribution buys, though. Jev returns `probabilities` and a
 `confidence` where a prompted judge returns a number it made up — but per TypeSafe's own
-confidence page, that confidence reflects *distribution concentration, not correctness*. It is
-a better-typed uncertainty signal, not a validated one. Whether it tracks accuracy here is an
-empirical question about our data, and it is unanswered. **[UNTESTED]**
+confidence page, that confidence reflects *distribution concentration, not correctness*.
+
+**Measured, and the honest answer is "unfalsifiable on this data":** with 20/20 correct there
+are **zero errors to correlate confidence against**. Mean confidence on correct answers was
+0.943. The tempting reading — "low confidence flags the hard cases" — is *weakly* supported at
+best: the two lowest-confidence cases (0.53, 0.76) were indeed two of the four JUDGE-001 cases,
+which is suggestive. But a signal that never fired on a wrong answer has not been shown to
+predict wrongness. Claiming calibration here would be exactly the kind of unearned number this
+repo exists to avoid. A bigger or harder set would be needed. **[UNTESTED — by construction]**
 
 **Thresholds.** Per constraint 4 and the jaggedness page's "no structural invariants": a Jev
 Choice probability is **not comparable** to the faithfulness 0.5 cutoff. Any Jev threshold
@@ -161,48 +201,66 @@ which it has not.
 
 ---
 
-## 5. Draft finding — JUDGE-003 (hold until measured)
+## 5. Draft finding — JUDGE-003, ready to commit
 
-**Do not commit this until experiment 1 runs.** Drafted in the existing FINDINGS.md style so
-it is ready; the bracketed values are placeholders, not predictions.
+Measured. Drafted in the existing FINDINGS.md style. The headline is deliberately the
+*ablation*, not the 100% — the 100% alone would be a misleading advertisement.
 
-> ## JUDGE-003 — A System One model as a third-family judge: [does / does not] separate the
-> "true but unsupported" class
+> ## JUDGE-003 — A typed three-way judge separates "true but unsupported", but only when the
+> criteria say so
 >
 > | field | value |
 > |---|---|
 > | **Type** | judge comparison (not an agent defect) |
-> | **Discovered by** | `meta_eval/jev_judge.py` over `meta_eval/gold.jsonl` |
+> | **Discovered by** | `jev-1.13.0` (TypeSafe System One) over `meta_eval/gold.jsonl`, 2026-09-21 |
 > | **Severity** | informational — spot-check, never a gate |
-> | **Status** | [measured / negative result] |
+> | **Status** | **Measured.** 140 live calls, $0.0002 total |
 >
-> **Motivation.** JUDGE-001 documents a lenient bias: Claude passes claims true in the world
-> but absent from context. A binary faithfulness score cannot express "the context is silent
-> on this" — it collapses *contradicted* and *unaddressed* into one axis. TypeSafe's Jev
-> offers a three-way Choice (`supports` / `contradicts` / `says_nothing`) where that bucket is
-> explicit.
+> **Motivation.** JUDGE-001 documents a lenient bias: the Claude faithfulness judge passes
+> claims true in the world but absent from context (4 false positives, each at score 1.00). A
+> *binary* faithfulness score structurally cannot express "the context is silent on this" — it
+> collapses *contradicted* and *unaddressed* into one axis. A three-way Choice
+> (`supports` / `contradicts` / `says_nothing`) has a bucket for it.
 >
-> **Measurement.** [N] gold cases, model `jev-1.13.0`, one Choice per case.
-> Accuracy [X]%, Cohen's κ [Y] (vs Claude's 80% / 0.60). Of the 4 known false positives,
-> [n] landed in `says_nothing`.
+> **Measurement.** 20 gold cases, one Choice per case, mapping `supports`→grounded and
+> `contradicts`/`says_nothing`→ungrounded in code. With criteria that explicitly describe the
+> failure mode: **accuracy 100%, Cohen's κ 1.00, fp=0, fn=0** (judge-A: 80%, κ 0.60, fp=4).
+> All 4 known false positives landed in `says_nothing`.
 >
-> **Confidence calibration.** [Whether Jev's returned confidence tracked its accuracy on the
-> gold set — a reliability curve, not a headline number. Caveat, from TypeSafe's own docs:
-> confidence measures how *concentrated* the probability distribution is, NOT correctness. A
-> confident wrong answer is entirely possible. Testing whether concentration happens to
-> correlate with correctness on our data is exactly the kind of vendor claim this repo exists
-> to check — and the raw `probabilities` may be more informative than the single number.]
+> **The result that matters — an ablation, 3 arms × 20 cases.** With bare option names
+> (no descriptions) accuracy is **90%**; with generic cookbook-style descriptions that do not
+> mention the failure mode, also **90%**. In *both* weaker arms
+> `g_correct_world_fact_unsupported` ("Aberdeen is in the UK") is graded `supports` — i.e.
+> **Jev reproduces judge-A's exact lenient bias when unprompted.** The generic arm also
+> introduced a *false negative* (`g_abstention_grounded`, a correct abstention graded
+> unsupported), an error class judge-A does not make.
 >
-> **Honest framing.** This is a spot-check, not a controlled cross-model study. It does not
-> change the pinned judge or the calibrated thresholds. [If negative: the lenient-bias failure
-> class survived a differently-shaped evaluator, which strengthens rather than weakens
-> JUDGE-001 — the problem is the task, not the judge.]
+> **Conclusion.** The lift is **decomposition + explicit criteria**, not a model that is
+> natively stricter. The three-way Choice gives you somewhere to put "true but unsupported";
+> it does not, by itself, make a model notice it. This is a finding about *prompt structure*,
+> and it applies to judge-A too: the same explicit boundary may be worth testing in the
+> DeepEval faithfulness prompt, at zero vendor risk.
+>
+> **Reproducibility.** 3 identical repeats: accuracy 100%/100%/100% and **0/20 option flips**,
+> but **6/20 cases returned a different confidence**, one ranging 0.48→0.63. The decision is
+> stable; the probability is not. Any Jev threshold would need the same margin discipline
+> `thresholds.yaml` applies to judge-A, and must never reuse judge-A's 0.5 cutoff — TypeSafe's
+> own docs state there are no structural invariants across question types.
+>
+> **Confidence is not validated here.** With zero errors there is nothing to correlate
+> confidence against. Mean confidence on correct answers was 0.943; the two lowest-confidence
+> cases were JUDGE-001 cases, which is suggestive but not evidence.
+>
+> **Honest framing.** A spot-check on 20 cases, not a controlled cross-model study. It does
+> not change the pinned judge or the calibrated thresholds, and it is not a licence to trust a
+> vendor's calibration claim.
 
-**A second finding is available even if #1 fails.** The jaggedness page states Jev treats
-state as data and is *not* hardened against adversarial content. This repo has a hand-authored
-injection/jailbreak corpus. Measuring whether red-team payloads move Jev's own answers is a
-publishable result about a documented weakness, tested on real adversarial data — and it is
-the kind of finding this repo exists to produce. **[UNTESTED]**
+**A second finding remains available and is now more attractive, not less.** The jaggedness
+page states Jev treats state as data and is not hardened against adversarial content. This
+repo has a hand-authored injection/jailbreak corpus. Measuring whether red-team payloads move
+Jev's own answers is a publishable result about a documented weakness on real adversarial
+data. Given §1's result — that Jev's answer is quite sensitive to how the question is
+worded — the hypothesis that hostile *state* also moves it is well motivated. **[UNTESTED]**
 
 ---
 
@@ -221,3 +279,30 @@ the kind of finding this repo exists to produce. **[UNTESTED]**
   hypotheses 2 and 3 lose most of their value and the honest recommendation is "no, with a
   documented negative finding" — which is a perfectly good outcome and cheaper than the
   alternative.
+- **The brief's one blind spot: it asked whether Jev beats the judge, not whether the
+  *question shape* beats the judge.** The ablation says most of the measured lift is the
+  three-way decomposition plus explicit criteria. That is a portable idea, and testing it on
+  judge-A costs nothing and adds no vendor. See §7.
+
+---
+
+## 7. Where the earlier design review was wrong
+
+Recorded because this document previously made predictions without a key, and honesty about
+the process is the same standard the repo applies to its numbers.
+
+| prediction | outcome |
+|---|---|
+| "Whether Jev separates those 4 cases is unknown" | **Correct to hedge.** It does — all 4, with the tuned criteria. |
+| Implied that separation would be a property of *the model* | **Wrong.** The ablation shows it is largely a property of *the criteria*. Unprompted, Jev makes judge-A's mistake. |
+| "Confidence tracking accuracy is an empirical question" | **Correct, but unanswerable here** — 20/20 leaves no errors to correlate against. |
+| Cost "rounds to zero" | **Confirmed**, and by a wider margin than estimated: $0.0002 for the entire investigation. |
+| Quota argument unfavourable | **Unchanged.** The generator is still the binding constraint. |
+
+**The finding the design review could not have produced** is the ablation. It is also the most
+useful one for this repo, and it points somewhere cheaper than adopting Jev: if explicit
+"true-but-unsupported" criteria are what fix the JUDGE-001 class, that boundary can be written
+into the **existing** DeepEval faithfulness prompt and measured with `make meta-eval` — no
+fourth vendor, no new dependency, no keyless-replay risk. **That experiment should be run
+before any decision to adopt Jev**, because if it works it makes most of the Jev case moot.
+**[UNTESTED]**

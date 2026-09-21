@@ -1,0 +1,368 @@
+{
+  "A_bare": [
+    {
+      "id": "g_clear_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_clear_ungrounded",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_paraphrase_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_partial_grounded_one_wrong",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 0.98
+    },
+    {
+      "id": "g_plausible_but_absent",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 0.58
+    },
+    {
+      "id": "g_correct_world_fact_unsupported",
+      "human": "ungrounded",
+      "choice": "supports",
+      "confidence": 0.84
+    },
+    {
+      "id": "g_abstention_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 0.41
+    },
+    {
+      "id": "g_subset_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 0.99
+    },
+    {
+      "id": "g_number_swap",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 0.99
+    },
+    {
+      "id": "g_grounded_with_citation",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_overconfident_inference",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 0.46
+    },
+    {
+      "id": "g_grounded_negation",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_ungrounded_negation_flip",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_grounded_unit_consistent",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_invented_specific",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 0.32
+    },
+    {
+      "id": "g_grounded_multi_context",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_ungrounded_mixed_context",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_grounded_exact",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_hedge_then_invent",
+      "human": "ungrounded",
+      "choice": "supports",
+      "confidence": 0.18
+    },
+    {
+      "id": "g_grounded_two_sites",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    }
+  ],
+  "B_generic": [
+    {
+      "id": "g_clear_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_clear_ungrounded",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 0.99
+    },
+    {
+      "id": "g_paraphrase_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_partial_grounded_one_wrong",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 0.99
+    },
+    {
+      "id": "g_plausible_but_absent",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 0.77
+    },
+    {
+      "id": "g_correct_world_fact_unsupported",
+      "human": "ungrounded",
+      "choice": "supports",
+      "confidence": 0.97
+    },
+    {
+      "id": "g_abstention_grounded",
+      "human": "grounded",
+      "choice": "says_nothing",
+      "confidence": 0.38
+    },
+    {
+      "id": "g_subset_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_number_swap",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 0.99
+    },
+    {
+      "id": "g_grounded_with_citation",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_overconfident_inference",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 0.74
+    },
+    {
+      "id": "g_grounded_negation",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_ungrounded_negation_flip",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_grounded_unit_consistent",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_invented_specific",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 0.42
+    },
+    {
+      "id": "g_grounded_multi_context",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_ungrounded_mixed_context",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_grounded_exact",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_hedge_then_invent",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 0.15
+    },
+    {
+      "id": "g_grounded_two_sites",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    }
+  ],
+  "C_tuned": [
+    {
+      "id": "g_clear_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_clear_ungrounded",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 0.99
+    },
+    {
+      "id": "g_paraphrase_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_partial_grounded_one_wrong",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_plausible_but_absent",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 0.97
+    },
+    {
+      "id": "g_correct_world_fact_unsupported",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 0.77
+    },
+    {
+      "id": "g_abstention_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 0.6
+    },
+    {
+      "id": "g_subset_grounded",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_number_swap",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 0.99
+    },
+    {
+      "id": "g_grounded_with_citation",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 0.88
+    },
+    {
+      "id": "g_overconfident_inference",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 0.96
+    },
+    {
+      "id": "g_grounded_negation",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_ungrounded_negation_flip",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_grounded_unit_consistent",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_invented_specific",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 0.56
+    },
+    {
+      "id": "g_grounded_multi_context",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_ungrounded_mixed_context",
+      "human": "ungrounded",
+      "choice": "contradicts",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_grounded_exact",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_hedge_then_invent",
+      "human": "ungrounded",
+      "choice": "says_nothing",
+      "confidence": 1.0
+    },
+    {
+      "id": "g_grounded_two_sites",
+      "human": "grounded",
+      "choice": "supports",
+      "confidence": 0.99
+    }
+  ]
+}
