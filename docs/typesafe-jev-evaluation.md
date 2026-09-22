@@ -1,8 +1,11 @@
 # Evaluating TypeSafe's Jev for EvalHarness
 
-**Status: MEASURED, 2026-09-21.** 140 live `jev-1.13.0` calls over this repo's own gold set.
-Total spend **$0.0002**. Every number below is measured unless explicitly marked
-**[UNTESTED]**. Raw per-case outputs are in §1.
+**Status: MEASURED, 2026-09-21; control experiment added 2026-09-22 (§8).** 140 live
+`jev-1.13.0` calls over this repo's own gold set, total spend **$0.0002**. Every number below
+is measured unless explicitly marked **[UNTESTED]**. Raw outputs: `docs/jev-evidence/`.
+
+**Read §8 before acting on §1.** It found that judge-A's own metric already has the
+"true but unsupported" bucket and discards it by default — which may make Jev unnecessary.
 
 *(An earlier revision of this file was a design review written without an API key. It has been
 superseded throughout; where a prediction turned out wrong, §7 says so.)*
@@ -14,7 +17,7 @@ Verified current as of 2026-09-20: **jev-1.13.0**, $0.042/M input tokens, output
 
 ---
 
-## 1. The decisive experiment — designed, not run
+## 1. The decisive experiment
 
 **Hypothesis.** JUDGE-001 records a systematic lenient bias: the Claude faithfulness judge
 passes claims that are *true in the world but absent from the context*. All 4 errors on the
@@ -105,7 +108,7 @@ model output; the gold set is binary and Jev's three-way answer must be projecte
 | 5 | `agent_tests/trace.py` decomposition | **No** | — | n/a |
 | 6 | Anything in the metric path | **No** | — | n/a |
 
-**Cost.** A 20-case gold run is roughly 20 × ~400 tokens ≈ 8k input tokens ≈ **$0.0003**.
+**Cost (measured).** A 20-case gold run is ~638 input tokens ≈ **$0.000027**.
 Cost is not a constraint anywhere in this evaluation; it rounds to zero at every scale this
 repo operates at.
 
@@ -122,6 +125,11 @@ check must live *inside* the compute closure, exactly as `evals/judge.py:63` and
 nothing**: it would add a fourth API dependency without loosening the constraint that actually
 binds. This is an argument against breadth of adoption, and it is independent of Jev's quality.
 
+*Update 2026-09-22:* the Claude judge is now blocked too — the Anthropic credit balance is
+exhausted (§8), which also failed the 2026-09-14 weekly live run. That is a **billing state,
+not a rate limit**, and Jev only relieves it by *replacing* the judge, which §3 rules out until
+measured. It is not an argument for Jev; restoring credit is.
+
 ---
 
 ## 3. Recommendation
@@ -131,11 +139,13 @@ test the question shape on judge-A first.**
 
 Three things follow from §1, in priority order:
 
-1. **Try the fix without the vendor.** The ablation shows most of the lift came from explicit
-   "true-but-unsupported" criteria, not from Jev being natively stricter. Writing that same
-   boundary into the existing DeepEval faithfulness prompt costs one `make meta-eval` run, adds
-   no dependency, and risks nothing. If it recovers the 4 JUDGE-001 cases, the Jev case largely
-   evaporates. **Do this before adopting anything.**
+1. **Try the fix without the vendor — and it may be a one-flag change.** The ablation shows
+   most of the lift came from explicit "true-but-unsupported" criteria, not from Jev being
+   natively stricter. §8 found that judge-A's metric *already has that bucket*: DeepEval's
+   faithfulness verdicts are `yes` / `no` / `idk`, and its default scorer counts `idk` as
+   faithful. `FaithfulnessMetric(penalize_ambiguous_claims=True)` counts it as unfaithful.
+   Measuring that on the gold set is one `make meta-eval` run — no prompt edits, no new
+   dependency. **Do this before adopting anything.** Blocked today only by Anthropic credit.
 2. **If Jev is adopted anyway, it arrives as a spot-check** — exactly as judge-B did, routed
    through `shared.cache`, with its scores committed, never gating a merge. That follows from
    the repo's own standard (JUDGE-001, ADR-0003) and from TypeSafe's docs, which state plainly
@@ -306,3 +316,67 @@ into the **existing** DeepEval faithfulness prompt and measured with `make meta-
 fourth vendor, no new dependency, no keyless-replay risk. **That experiment should be run
 before any decision to adopt Jev**, because if it works it makes most of the Jev case moot.
 **[UNTESTED]**
+
+---
+
+## 8. Control experiment: judge-A already has a `says_nothing` bucket (2026-09-22)
+
+§7 proposed testing the "true-but-unsupported" boundary on the existing judge before adopting
+Jev. Reading DeepEval's source to design that test changed the question.
+
+**Verified from source (`deepeval` 4.0.7), no API calls needed:**
+
+- The faithfulness verdict prompt asks whether each claim **contradicts** the context — not
+  whether the context **supports** it. Its guidelines say: *"Only use 'no' if retrieval
+  context DIRECTLY CONTRADICTS the claim"* and *"Use 'idk' for claims not backed up by
+  context"*.
+- `_calculate_score` (`faithfulness.py:375`) counts every verdict that is not `no` as
+  faithful. **An `idk` scores exactly like a `yes`.**
+- `FaithfulnessMetric(penalize_ambiguous_claims=True)` changes only that arithmetic (and the
+  reason text): `idk` then counts as unfaithful. The claim, truth, and verdict prompts sent to
+  the judge are unchanged.
+
+So DeepEval's faithfulness is structurally a **contradiction detector**, and it already has
+the three-way distinction Jev's citation-check Choice offers: `yes` ≈ `supports`,
+`no` ≈ `contradicts`, `idk` ≈ `says_nothing`. The default setting throws the third bucket
+away. That is a **plausible mechanism for JUDGE-001**: all four false positives scored exactly
+1.00, which is what you would see if Claude had correctly answered `idk` and the scorer had
+discarded it.
+
+**Plausible is not shown.** A score of 1.00 is equally consistent with Claude answering `yes`
+(genuinely lenient). Telling the two apart needs the per-claim verdicts for the gold set, and
+those were never recorded — `meta_eval/scores.json` stores only final scores, and the committed
+cache holds no gold-set judge calls. **[UNTESTED]**
+
+**Blocked, not failed.** The live run (`JUDGE_LIVE=1`, cache bypassed so the baseline could
+not be touched) stopped at the first call: `400 — Your credit balance is too low to access the
+Anthropic API`. No calls were billed; the cache was 209 files before and after. The script is
+committed as `docs/jev-evidence/run_exp4_idk_control.py`, ready to run once credit is restored.
+It judges each case once and scores the *same* verdicts under both rules, so the comparison
+isolates the scoring rule from judge stochasticity.
+
+**What the committed functional-suite cache does show (keyless).** Across the 16 cached
+faithfulness verdict calls: **17 `yes`, 1 `idk`, 0 `no`**. The one `idk` was *not* a
+hallucination — Claude flagged a correct answer because it cited a source filename
+(`02_products.md`) that is not part of the context text. Under
+`penalize_ambiguous_claims=True` that correct answer drops from 1.00 to 0.50. So the flag has
+a real cost: a **false negative on citations**, the same error class the Jev arm-B ablation
+produced. Enabling it in the metric path would need the gold set to show the gain outweighs
+that cost — and possibly a gold case for "cites a source filename".
+
+*(Correction recorded for honesty: an intermediate tally in this session reported
+"37 yes / 7 idk / 0 no". That mixed faithfulness with answer-relevancy calls, which DeepEval
+also returns under a schema named `Verdicts`. The split figures above are the correct ones.)*
+
+**What this does to the Jev case.** The three-way decomposition is *not* unique to Jev — judge-A
+has it and scores it away by default. If `penalize_ambiguous_claims=True` recovers the four
+JUDGE-001 cases, the remaining argument for Jev is speed (0.35 s) and price, neither of which is
+a constraint here (§2). If it does *not* recover them — Claude answered `yes` — then JUDGE-001 is
+genuinely a judgment problem, and the §1 result (Jev 100% with explicit criteria) becomes the
+strongest evidence in this document.
+
+**Next step, in order:**
+1. Restore Anthropic credit.
+2. `JUDGE_LIVE=1 .venv/Scripts/python.exe docs/jev-evidence/run_exp4_idk_control.py` (~60 Haiku
+   calls, a few cents). Read the verdicts on the four JUDGE-001 cases first; they decide it.
+3. Only then decide whether Jev earns a spot-check slot.

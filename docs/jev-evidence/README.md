@@ -10,6 +10,8 @@ Measured 2026-09-21 against `jev-1.13.0`. 140 live calls, ~$0.0002 total.
 | `exp1_gold_tuned.json` | All 20 gold cases, tuned criteria. Per-case option, full probability distribution, confidence, latency. The 100% / κ 1.00 headline. |
 | `exp2_criteria_ablation.json` | 3 arms × 20 cases: bare option names (90%), generic descriptions (90%), tuned (100%). The key result — the lift is the criteria, not the model. |
 | `exp3_stability_3runs.json` | 3 identical repeats of the tuned arm. 0/20 option flips, 6/20 confidence changes. |
+| `analyze_cached_verdicts.py` | **Keyless.** Tallies the DeepEval verdicts already in `evals/cache/` (§8): faithfulness 17 yes / 1 idk / 0 no. |
+| `run_exp4_idk_control.py` | **Not yet run — blocked on Anthropic credit.** The control: judge-A's own `idk` bucket, scored both ways from identical verdicts. Needs `JUDGE_LIVE=1`. |
 
 ## Re-running
 
