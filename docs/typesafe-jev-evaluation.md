@@ -364,9 +364,9 @@ a real cost: a **false negative on citations**, the same error class the Jev arm
 produced. Enabling it in the metric path would need the gold set to show the gain outweighs
 that cost — and possibly a gold case for "cites a source filename".
 
-*(Correction recorded for honesty: an intermediate tally in this session reported
-"37 yes / 7 idk / 0 no". That mixed faithfulness with answer-relevancy calls, which DeepEval
-also returns under a schema named `Verdicts`. The split figures above are the correct ones.)*
+*(Pitfall when reproducing this: DeepEval returns answer-relevancy verdicts under the same
+schema name, `Verdicts`, so an unsplit tally reads "37 yes / 7 idk / 0 no" and overstates the
+faithfulness `idk` count. Split by prompt, as `analyze_cached_verdicts.py` does.)*
 
 **What this does to the Jev case.** The three-way decomposition is *not* unique to Jev — judge-A
 has it and scores it away by default. If `penalize_ambiguous_claims=True` recovers the four

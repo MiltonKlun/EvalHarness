@@ -25,28 +25,28 @@ The **evaluator** is **Anthropic Claude** — a *different model family*, so the
 never grades its own work. The engineering goal is entirely in **how you
 test something that won't hold still**.
 
-> ✅ **Status: v1.2 — complete and green.** Three suites + meta-eval + three-tier CI,
+> **Status: v1.2 — complete and green.** Three suites + meta-eval + three-tier CI,
 > all built and passing. The full suite runs **offline and keyless**; judged and live
 > tiers add real Gemini/Claude calls for drift detection.
 
 ---
 
-## ❓ Why it exists
+## Why it exists
 
 Asking an AI to "grade this answer" gets you a plausible number fast. EvalHarness gets
 you a *defensible* one — and treats LLM behaviour as something you can regression-test
 in CI. Four things you get that raw prompting doesn't:
 
-| | You gain | What it means |
-| --- | --- | --- |
-| 🎯 | **Fuzzy metrics, not `==`** | Grades **groundedness / relevancy / abstention / safety** — the qualities that actually matter — against thresholds **calibrated to a hand-labeled gold set**, not vibes. |
-| 🔀 | **"Code regressed" ≠ "model drifted"** | CI is split into **three tiers** so those two questions never get conflated — a flaky judge never blocks a merge. |
-| 🧪 | **A measured judge** | The Claude judge is itself measured against 20 human-labeled cases (**80% acc, κ 0.60**) with a *documented* lenient bias — CI goes red if it degrades. |
-| 📼 | **Nothing hardcoded** | Record/replay caches the expensive stochastic call once; the metric *code* re-runs live over it every time — free, keyless, reproducible. |
+| You gain | What it means |
+| --- | --- |
+| **Fuzzy metrics, not `==`** | Grades **groundedness / relevancy / abstention / safety** — the qualities that actually matter — against thresholds **calibrated to a hand-labeled gold set**, not vibes. |
+| **"Code regressed" ≠ "model drifted"** | CI is split into **three tiers** so those two questions never get conflated — a flaky judge never blocks a merge. |
+| **A measured judge** | The Claude judge is itself measured against 20 human-labeled cases (**80% acc, κ 0.60**) with a *documented* lenient bias — CI goes red if it degrades. |
+| **Nothing hardcoded** | Record/replay caches the expensive stochastic call once; the metric *code* re-runs live over it every time — free, keyless, reproducible. |
 
 ---
 
-## 🚪 Quickstart — pick a door
+## Quickstart — pick a door
 
 ```bash
 make install            # uv venv && uv pip install -e ".[dev]"
@@ -62,7 +62,7 @@ make install            # uv venv && uv pip install -e ".[dev]"
 
 ---
 
-## ⚙️ How it works
+## How it works
 
 A simple Gemini RAG agent is probed by four suites; an *independent* Claude judge grades
 the metrics; a record/replay cache makes it all reproducible offline.
@@ -86,7 +86,7 @@ flowchart TB
 
     OUT --> S1 & S2 & S3
 
-    CLAUDE["⚖️ Claude judge<br/><i>different model family</i>"]
+    CLAUDE["Claude judge<br/><i>different model family</i>"]
     S1 -. "faithfulness / relevancy" .-> CLAUDE
     S2 -. "toxicity grading" .-> CLAUDE
     GOLD["Hand-labeled gold set"] --> S4
@@ -109,15 +109,15 @@ so pass/fail lines are defended, not guessed.
 
 ---
 
-### 🚦 The three CI tiers
+### The three CI tiers
 
 Each tier answers a different question with exactly the keys it needs.
 
 ```mermaid
 flowchart LR
-    PUSH["push / PR"] --> FAST["⚡ Fast · ci.yml"]
-    LABEL["manual / label"] --> JUDGED["⚖️ Judged · judged-eval.yml"]
-    CRON["weekly cron"] --> LIVE["🌐 Live drift · live-eval.yml"]
+    PUSH["push / PR"] --> FAST["Fast · ci.yml"]
+    LABEL["manual / label"] --> JUDGED["Judged · judged-eval.yml"]
+    CRON["weekly cron"] --> LIVE["Live drift · live-eval.yml"]
 
     FAST   -->|"no keys · blocking"| PF["'my code didn't regress'"]
     JUDGED -->|"live Claude judge · non-blocking"| PJ["'the metric logic holds'"]
@@ -131,16 +131,16 @@ flowchart LR
 
 | Tier | Trigger | Keys | Proves |
 | --- | --- | --- | --- |
-| **⚡ Fast** (`ci.yml`) | every push / PR | **none** | *"my code/prompts didn't regress"* — deterministic checks over replayed answers; fast, free, **blocking** |
-| **⚖️ Judged** (`judged-eval.yml`) | manual / PR label | Anthropic | *"the metric logic holds against a **live** judge"* — non-blocking on purpose |
-| **🌐 Live drift** (`live-eval.yml`) | weekly cron | Google + Anthropic | *"the model didn't drift"* — real calls + the determinism probe |
+| **Fast** (`ci.yml`) | every push / PR | **none** | *"my code/prompts didn't regress"* — deterministic checks over replayed answers; fast, free, **blocking** |
+| **Judged** (`judged-eval.yml`) | manual / PR label | Anthropic | *"the metric logic holds against a **live** judge"* — non-blocking on purpose |
+| **Live drift** (`live-eval.yml`) | weekly cron | Google + Anthropic | *"the model didn't drift"* — real calls + the determinism probe |
 
 > **Why the judge is off the blocking path:** it's non-deterministic *and* costs money. Gating merges on a flaky paid check breeds
 > potential red builds — so it runs opt-in, never as a required PR check. Intentional hygiene, not a gap.
 
 ---
 
-## 📟 Commands
+## Commands
 
 | Command | What it does |
 | --- | --- |
@@ -156,11 +156,11 @@ flowchart LR
 
 ---
 
-## 🔬 The findings
+## The findings
 
 Real results the harness produced — not features, *evidence*.
 
-### 🎭 The judge is measured, not trusted — [`make meta-eval`](adversarial/FINDINGS.md)
+### The judge is measured, not trusted — [`make meta-eval`](adversarial/FINDINGS.md)
 
 We grade with Claude, so the question is *how do we know the judge is right?*
 We measure it against **20 hand-labeled cases**:
@@ -173,12 +173,12 @@ We measure it against **20 hand-labeled cases**:
 
 The errors aren't random — a **systematic lenient bias**: the judge passes a claim that's
 *true in the real world* but absent from the context (*"Aberdeen is in the UK"* — true, not
-in the docs). So our faithfulness scores are an **upper bound** on true groundedness. 
+in the docs). So our faithfulness scores are an **upper bound** on true groundedness.
 The threshold is **calibrated** to this set (a 0.05 margin keeps us off the noisy
 boundary), and the **weekly live tier re-scores with the fresh judge and fails if accuracy
 drops below 80 % / κ 0.60**. Full write-up: [JUDGE-001](adversarial/FINDINGS.md).
 
-### 🎲 `temperature=0` ≠ determinism — [`docs/determinism_run.txt`](docs/determinism_run.txt)
+### `temperature=0` ≠ determinism — [`docs/determinism_run.txt`](docs/determinism_run.txt)
 
 Measured, not assumed — and it tells a two-part story:
 
@@ -191,7 +191,7 @@ The conclusion the whole architecture rests on: **reproducibility comes from com
 recordings, not from pinning knobs.** *(the cross-session capture is of the
 whole pinned pipeline; it doesn't isolate retrieval vs. generation.)*
 
-### 🐛 Three real defects, found and fixed — [`adversarial/FINDINGS.md`](adversarial/FINDINGS.md)
+### Three real defects, found and fixed — [`adversarial/FINDINGS.md`](adversarial/FINDINGS.md)
 
 The same loop — *suite finds it → logged with traceability → hardened → the case guards
 against regression* — caught all three:
@@ -204,7 +204,7 @@ against regression* — caught all three:
 
 ---
 
-## 🗂️ Repository layout
+## Repository layout
 
 | Path | Contents |
 | --- | --- |
@@ -220,7 +220,7 @@ against regression* — caught all three:
 
 ---
 
-## 📐 Key design choices
+## Key design choices
 
 - **Record/replay is the backbone** — pay for the stochastic call once, commit it, then
   re-run the free deterministic metric *code* over it. A cache miss in replay mode
@@ -234,7 +234,7 @@ against regression* — caught all three:
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 - **[docs/COST.md](docs/COST.md)** — per-run quota/cost math vs. the free tiers.
 - **[docs/WRITEUP.md](docs/WRITEUP.md)** — "How I built CI that catches LLM hallucinations."
@@ -244,7 +244,7 @@ against regression* — caught all three:
 
 ---
 
-## 📝 License
+## License
 
 This project is licensed under the [MIT License](LICENSE).
 
