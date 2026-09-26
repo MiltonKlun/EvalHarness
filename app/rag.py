@@ -7,9 +7,9 @@
 
 The system prompt instructs **grounding and explicit abstention** — if the corpus
 doesn't contain the answer, the model must say so rather than invent one. The
-unanswerable test cases (plan 2.2) probe exactly this.
+unanswerable test cases probe exactly this.
 
-Decode modes (plan 1.3, exercised by the determinism experiment in 2.6):
+Decode modes (exercised by the determinism experiment):
   - "max_pinned": pin every knob the Gemini API exposes (temperature=0, top_p/top_k,
     and seed). We do NOT claim this yields determinism — Google's docs say seed is
     best-effort and temp=0 is only "mostly" deterministic. We pin, then *measure* the

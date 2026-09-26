@@ -62,5 +62,5 @@ def load_cases() -> list[Case]:
 
 
 def load_thresholds() -> dict[str, Any]:
-    """Load thresholds.yaml (provisional until Phase 6 calibration)."""
+    """Load thresholds.yaml (calibrated by the meta-eval)."""
     return yaml.safe_load(THRESHOLDS_PATH.read_text(encoding="utf-8"))

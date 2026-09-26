@@ -1,4 +1,4 @@
-"""Meta-eval runner (plan 6.2-6.4): measure the judge against a human gold set.
+"""Meta-eval runner: measure the judge against a human gold set.
 
 Flow:
   1. For each gold case, get the Claude judge's faithfulness SCORE (0..1) for (answer,
@@ -31,7 +31,7 @@ _REPO_ROOT = _DIR.parent
 THRESHOLDS_PATH = _REPO_ROOT / "thresholds.yaml"
 
 # A safety margin subtracted from the raw calibrated cutoff so we don't sit a hair above
-# the judge's decision boundary (the judge is itself noisy — see the Phase 2 flake finding).
+# the judge's decision boundary (the judge is itself noisy run-to-run).
 THRESHOLD_MARGIN = 0.05
 
 
@@ -162,7 +162,7 @@ def write_threshold(a: dict, run_id: str) -> None:
     data["calibration_run"] = run_id
     data["per_answer"]["faithfulness"] = a["calibrated_threshold"]
     header = (
-        "# Metric pass/fail thresholds — CALIBRATED by the Phase 6 meta-eval.\n"
+        "# Metric pass/fail thresholds — CALIBRATED by the meta-eval.\n"
         f"# faithfulness was set by `make meta-eval` (run {run_id}): the cutoff that best\n"
         "# separates the hand-labeled gold set, minus a 0.05 margin for the judge's noise.\n"
         "# The judge has a documented lenient bias (JUDGE-001 in adversarial/FINDINGS.md) —\n"

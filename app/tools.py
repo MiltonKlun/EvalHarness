@@ -1,9 +1,9 @@
 """Tools the agent can call.
 
 Two tools, deliberately: the retrieval tool (the real capability) and one *external*
-tool stub. The stub is intentionally trivial — Phase 5 tests the agent-reliability
+tool stub. The stub is intentionally trivial — agent_tests/ tests the agent-reliability
 *technique* (right tool, right args, loop safety, failure recovery), not a sophisticated
-agent. Keeping the external tool a stub is a deliberate scope choice (plan Phase 5 note).
+agent. Keeping the external tool a stub is a deliberate scope choice.
 """
 
 from __future__ import annotations

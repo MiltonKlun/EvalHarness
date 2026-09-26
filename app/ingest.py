@@ -3,7 +3,7 @@
 Run this once (locally, with GOOGLE_API_KEY set) to (re)build ``app/vectorstore/``,
 then commit the result. CI and other machines load the *committed* store and never
 re-embed — so retrieval is identical everywhere and embedding drift can't silently
-move "groundedness" numbers (plan 1.2).
+move "groundedness" numbers.
 
 Usage:
     python -m app.ingest          # build and persist

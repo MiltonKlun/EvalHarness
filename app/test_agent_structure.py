@@ -1,7 +1,7 @@
 """Offline structural tests for the agent + RAG wiring — no API keys, no network.
 
-These don't exercise the live model (that needs GOOGLE_API_KEY and is the Phase 1
-exit check). They verify the pieces that must hold regardless of the model:
+These don't exercise the live model (that needs GOOGLE_API_KEY and is checked
+live). They verify the pieces that must hold regardless of the model:
   - the tool surface is what we expect,
   - the prompt enforces grounding + abstention,
   - decode modes are well-formed (max_pinned actually pins every knob),
@@ -58,4 +58,4 @@ def test_agent_graph_compiles_and_has_guard():
         compiled = agent._build_graph()
 
     assert compiled is not None
-    assert agent.MAX_STEPS >= 1  # loop-safety guard exists (tested for real in Phase 5)
+    assert agent.MAX_STEPS >= 1  # loop-safety guard exists (tested for real in agent_tests/)

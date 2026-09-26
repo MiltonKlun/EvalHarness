@@ -1,4 +1,4 @@
-"""Push the eval dataset to LangSmith as a named dataset (plan 2.1).
+"""Push the eval dataset to LangSmith as a named dataset.
 
 This makes the eval set visible in the LangSmith UI — demonstrating real eval-tooling
 use, not just local files. Idempotent: if the named dataset already exists, examples are

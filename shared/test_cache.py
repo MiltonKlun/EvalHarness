@@ -1,4 +1,4 @@
-"""Smoke test for the record/replay cache — Phase 0 exit criterion.
+"""Smoke test for the record/replay cache.
 
 Verifies the three behaviours the two-tier CI strategy depends on:
   1. live mode records the computed response to disk,

@@ -1,7 +1,7 @@
 """Record/replay cache for raw LLM responses — the CI-cost mechanism.
 
-This is the heart of the two-tier CI strategy (see the build plan's "Two-tier CI"
-box). It stores ONLY the raw LLM response text, keyed by a hash of everything that
+This is the heart of the two-tier CI strategy (replay in CI,
+record live). It stores ONLY the raw LLM response text, keyed by a hash of everything that
 determines that response (provider + model + params + prompt). The eval *metrics*
 never live here — they re-run live on every CI run, on top of replayed inputs.
 

@@ -2,7 +2,7 @@
 
 Primary path (keyless, default): read LangGraph's in-memory intermediate steps straight
 off the final state's message list. This works offline with no API key, which is what
-keeps `make agent-tests` runnable on a fresh clone (plan 5.5).
+keeps `make agent-tests` runnable on a fresh clone.
 
 Optional path (bonus): if a LangSmith key is present, the same structure can also be
 pulled from the remote trace — see ``langsmith_tool_calls``. That path SKIPS cleanly when

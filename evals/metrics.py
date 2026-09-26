@@ -1,4 +1,4 @@
-"""Metric assertions for the functional eval suite (plan 2.2).
+"""Metric assertions for the functional eval suite.
 
 Two layers, cheapest first:
 

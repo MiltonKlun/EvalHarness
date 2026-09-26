@@ -2,7 +2,7 @@
 
 Loads the *committed* FAISS store (built by ``app.ingest``) and returns the top-k most
 relevant chunks, deduplicated, each carrying its source metadata. This clean boundary
-is what the eval suite asserts against (right chunks, right sources) — see plan 1.2.
+is what the eval suite asserts against (right chunks, right sources).
 
 Retrieval is routed through the SAME record/replay cache as LLM calls:
   - LIVE_LLM=1 -> embed the query (needs GOOGLE_API_KEY) and record the chunks,

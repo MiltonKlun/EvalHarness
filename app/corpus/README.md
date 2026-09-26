@@ -15,10 +15,10 @@ Using invented facts is a deliberate eval-design choice:
 2. **We control answerability exactly.** Some facts are stated; some are explicitly
    withheld (revenue, the confidential incident log, per-customer pricing). That gives
    us clean **unanswerable-from-corpus** cases for the abstention/hallucination tests
-   (plan 2.2) without ambiguity.
+   without ambiguity.
 3. **Multi-hop is checkable.** E.g. "Which drone can fly in 20 m/s wind?" requires
    comparing the Kestrel-1 (14 m/s) and Kestrel-2 (22 m/s) facts — a defined two-hop
-   answer (plan 2.1).
+   answer.
 
 ## Documents
 

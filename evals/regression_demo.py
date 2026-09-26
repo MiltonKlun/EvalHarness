@@ -1,4 +1,4 @@
-"""Regression demo (plan 2.5): show the eval suite catching a broken system.
+"""Regression demo: show the eval suite catching a broken system.
 
 Two flavours:
 
@@ -8,7 +8,7 @@ Two flavours:
    regression, using zero Gemini quota — it runs the live Claude judge over a synthetic
    bad answer.
 
-2. `--mode prompt-break` (documented, needs Gemini quota): the "real" demo from the plan
+2. `--mode prompt-break` (documented, needs Gemini quota): the "real" demo
    — break app/rag.SYSTEM_PROMPT in a branch (e.g. remove the grounding instruction),
    re-run `make eval`, and watch faithfulness drop on real output. Steps printed below;
    run it when generate-quota is available (or billing is on).

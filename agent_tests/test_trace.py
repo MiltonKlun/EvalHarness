@@ -1,4 +1,4 @@
-"""Trace-based assertions (plan 5.5) — in-memory default, LangSmith optional.
+"""Trace-based assertions — in-memory default, LangSmith optional.
 
 Demonstrates the project's graceful-degradation rule: the agent's structure is asserted
 from LangGraph's in-memory steps (keyless, always works); the LangSmith remote-trace path

@@ -1,4 +1,4 @@
-"""Stochasticity & determinism experiment (plan 2.6) — the standout README finding.
+"""Stochasticity & determinism experiment — the standout README finding.
 
 Samples a subset of cases N times in BOTH decode modes and reports the variance:
 

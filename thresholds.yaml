@@ -1,4 +1,4 @@
-# Metric pass/fail thresholds — CALIBRATED by the Phase 6 meta-eval.
+# Metric pass/fail thresholds — CALIBRATED by the meta-eval.
 # faithfulness was set by `make meta-eval` (run meta-eval-2026-06-29): the cutoff that best
 # separates the hand-labeled gold set, minus a 0.05 margin for the judge's noise.
 # The judge has a documented lenient bias (JUDGE-001 in adversarial/FINDINGS.md) —

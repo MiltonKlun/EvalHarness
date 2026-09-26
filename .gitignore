@@ -23,7 +23,7 @@ env/
 # uv.lock IS committed (reproducible installs) — do not ignore it.
 
 # --- Vector store ---
-# app/vectorstore/ IS committed (Phase 1: reproducible retrieval across machines/CI).
+# app/vectorstore/ IS committed (reproducible retrieval across machines/CI).
 # Do NOT ignore it. Scratch build artifacts only:
 *.tmp
 
@@ -41,10 +41,11 @@ Thumbs.db
 .deepeval/
 .deepeval-cache.json
 
-# --- Private planning docs (local working documents, not for repo visitors) ---
-V1.1_Hardening_Plan.md
-V1.2_IMPROVEMENTS.md
-V1.3_IMPROVEMENTS.md
-RESUME_STATE.md
-docs/LLM_Eval_Harness_Build_Plan.md
-docs/V1.1_Hardening_Plan.md
+# --- Private working notes (kept local) ---
+private/
+
+# --- Local assistant tooling ---
+CLAUDE.md
+AGENTS.md
+.codex/
+.claude/

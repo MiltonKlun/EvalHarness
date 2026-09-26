@@ -1,4 +1,4 @@
-"""Run the functional suite once and append a summary row to the eval history (plan 7.2).
+"""Run the functional suite once and append a summary row to the eval history.
 
 This is the producer for the metrics-over-time surface: it evaluates every dataset case
 (replaying recorded inputs; metrics run live, exactly like ``make eval-ci``) and appends a

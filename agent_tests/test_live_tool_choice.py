@@ -1,4 +1,4 @@
-"""Live tool-call correctness (plan 5.1) against the REAL Gemini agent — LIVE-only.
+"""Live tool-call correctness against the REAL Gemini agent — LIVE-only.
 
 The scripted tests prove the graph *mechanics* keylessly; this proves the real model
 actually picks the right tool for a representative input.

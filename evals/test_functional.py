@@ -1,4 +1,4 @@
-"""Parametrized functional eval suite — one pytest case per dataset row (plan 2.4).
+"""Parametrized functional eval suite — one pytest case per dataset row.
 
 Behaviour by mode:
   - LIVE_LLM=1  -> real Gemini + Claude calls, recorded to evals/cache. This is `make eval`.

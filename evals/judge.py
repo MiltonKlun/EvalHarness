@@ -4,7 +4,7 @@ DeepEval's LLM-as-judge metrics (faithfulness, relevancy) need a model that can 
 *structured* output against a Pydantic schema. We wrap Anthropic Claude (pinned to the
 cheap Haiku tier) via ``instructor``, which enforces the schema for us.
 
-Independence property (plan 2.2): the system under test is Gemini; the judge is Claude.
+Independence property: the system under test is Gemini; the judge is Claude.
 The judge never grades its own homework.
 
 Cost: Haiku is the cheapest Claude model; judge prompts are tiny (one answer + its

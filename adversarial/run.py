@@ -1,4 +1,4 @@
-"""Adversarial red-team runner (plan 4.3) — produces a graded report.
+"""Adversarial red-team runner — produces a graded report.
 
 For each payload:
   1. send the attack input to the RAG agent via app.rag.answer() — routed through the

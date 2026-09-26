@@ -1,4 +1,4 @@
-"""Run the functional eval suite over the dataset (plan 2.3/2.4).
+"""Run the functional eval suite over the dataset.
 
 For each case:
   1. get the RAG answer via app.rag.answer() — which routes the Gemini call through the

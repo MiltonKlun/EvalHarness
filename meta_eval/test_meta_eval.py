@@ -1,4 +1,4 @@
-"""Meta-eval gate (plan 6.2/6.4) — asserts the judge agrees with humans well enough.
+"""Meta-eval gate — asserts the judge agrees with humans well enough.
 
 Replays the cached judge scores (meta_eval/scores.json) and checks that agreement with the
 hand-labeled gold set clears a floor. This is also the judge-DRIFT guard: if a future judge

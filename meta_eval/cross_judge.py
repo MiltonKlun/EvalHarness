@@ -1,4 +1,4 @@
-"""Cross-judge spot-check (build plan 6.5, deferred) — a SECOND judge, for the write-up.
+"""Cross-judge spot-check — a SECOND judge, for the write-up.
 
 The pinned judge (judge-A) is Claude Haiku; the system under test is Gemini. This adds a
 THIRD family — OpenAI — purely as an illustrative spot-check: score the same gold set with

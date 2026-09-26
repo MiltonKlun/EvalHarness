@@ -1,7 +1,7 @@
 """Shared data shapes for the RAG app.
 
 A ``Chunk`` carries the retrieved text *plus the source metadata* that downstream
-groundedness and citation checks need (plan 1.2 RAG-correctness checklist). Keeping
+groundedness and citation checks need. Keeping
 this explicit — rather than passing bare strings around — is what lets the eval suite
 assert "the answer cites the right source", not just "the answer looks right".
 """

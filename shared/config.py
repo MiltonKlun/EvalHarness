@@ -3,7 +3,7 @@
 Everything that can drift in a non-deterministic eval harness is pinned in one place:
 - the generator model (Gemini) and embedding model under test,
 - the judge model (Claude) — a *different family*, so the evaluator never grades its
-  own homework (see the build plan's independence property),
+  own homework (the independence property),
 - the LIVE_LLM record/replay switch.
 
 `require()` fails loud when a key is missing, so a misconfigured run errors immediately
@@ -45,7 +45,7 @@ GENERATOR_MODEL = os.getenv("GENERATOR_MODEL", "google_genai:gemini-2.5-flash")
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "anthropic:claude-haiku-4-5")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-2")
 
-# --- Retrieval / chunking (a drift surface — pin it, plan 1.2) ---------------------
+# --- Retrieval / chunking (a drift surface — pin it) ---------------------
 # Chunk size/overlap are documented, deliberate choices: small enough to be precise,
 # large enough that a single spec (e.g. one drone's stats) is not split mid-fact.
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "600"))
@@ -57,7 +57,7 @@ RETRIEVAL_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "4"))
 CORPUS_DIR = _REPO_ROOT / "app" / "corpus"
 VECTORSTORE_DIR = _REPO_ROOT / "app" / "vectorstore"
 
-# --- Decode modes (exercised by the determinism experiment, plan 1.3 / 2.6) --------
+# --- Decode modes (exercised by the determinism experiment) --------
 # "max_pinned": pin every knob the API exposes (temp=0, top_p/top_k fixed, seed set)
 #               and then *measure* the residual variance — we do not claim determinism.
 # "near_det":   temperature=0 only.

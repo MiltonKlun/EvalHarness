@@ -1,12 +1,12 @@
 """LangGraph agent: a tool-calling graph over the corpus + one external tool.
 
-The graph is the *agentic* surface the Phase 5 reliability suite tests (tool-call
+The graph is the *agentic* surface the reliability suite (agent_tests/) tests (tool-call
 correctness, loop/termination safety, state integrity, failure recovery). It is kept
 deliberately small — the tests are the star.
 
 Shape:
     agent ──(tool calls?)──> tools ──> agent ──> ... ──> END
-A max-step guard bounds the loop so the agent always terminates (plan 5.2).
+A max-step guard bounds the loop so the agent always terminates.
 
 CLI:
     python -m app.agent "Which drone can fly in 20 m/s wind?"
@@ -25,7 +25,7 @@ from langgraph.prebuilt import ToolNode
 from app.tools import TOOLS
 from shared import config, llm
 
-# Max agent<->tools round trips before we force a stop. Loop-safety guard (plan 5.2).
+# Max agent<->tools round trips before we force a stop. Loop-safety guard.
 MAX_STEPS = 6
 
 AGENT_SYSTEM_PROMPT = """You are an assistant for Meridian Robotics field operators.
@@ -48,7 +48,7 @@ class AgentState(TypedDict):
 def build_graph(model=None, tools=None):
     """Construct and compile the agent graph.
 
-    ``model`` and ``tools`` are injectable so the Phase 5 reliability tests can drive the
+    ``model`` and ``tools`` are injectable so the reliability tests can drive the
     graph with a scripted fake model + fake tools — exercising routing, the loop guard,
     state, and failure recovery with NO API key. In production both default to the real
     Gemini generator and the real tool set.
@@ -77,7 +77,7 @@ def build_graph(model=None, tools=None):
     graph = StateGraph(AgentState)
     graph.add_node("agent", agent_node)
     # handle_tool_errors=True turns a raising tool into a ToolMessage the agent can recover
-    # from, instead of crashing the graph (failure-recovery property, plan 5.4 / VULN-driven).
+    # from, instead of crashing the graph (failure-recovery property; see VULN-002).
     graph.add_node("tools", ToolNode(tools, handle_tool_errors=True))
     graph.add_edge(START, "agent")
     graph.add_conditional_edges("agent", route, {"tools": "tools", END: END})

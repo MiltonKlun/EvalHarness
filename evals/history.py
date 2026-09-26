@@ -1,4 +1,4 @@
-"""Metrics-over-time surface (plan 7.2): make drift *visible*, not just pass/fail.
+"""Metrics-over-time surface: make drift *visible*, not just pass/fail.
 
 A single pass/fail tells you the state today; it doesn't show a metric slowly sliding
 toward the threshold over weeks. This module appends one summary row per live run to a

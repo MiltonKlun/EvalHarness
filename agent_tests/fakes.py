@@ -62,7 +62,7 @@ def fake_retrieve(query: str) -> str:
 
 @tool
 def boom(query: str) -> str:
-    """A tool that always fails — used to test failure recovery (plan 5.4)."""
+    """A tool that always fails — used to test failure recovery."""
     raise RuntimeError("simulated tool failure")
 
 

@@ -1,4 +1,4 @@
-"""Agent reliability suite (plan 5.1-5.4) — tests the GRAPH, not just final text.
+"""Agent reliability suite — tests the GRAPH, not just final text.
 
 All keyless: a ScriptedModel drives the real LangGraph graph with fixed tool-call
 sequences, and we assert on the in-memory intermediate steps. No Gemini/Anthropic key, no

@@ -38,65 +38,28 @@ exists.
 
 ---
 
-## Controlled N-sample study — session 1 of 3 (2026-08-29) — PARTIAL, quota-truncated
+## Controlled multi-session study
 
-Intent (v1.3): convert the cross-session half of this finding from an incidental by-product
-into a deliberate, controlled measurement — N=5 samples/case/mode, repeated across >=3
-sessions on >=2 distinct calendar days, same pinned pipeline every time.
+Purpose: turn the cross-session observation above into a deliberate measurement of the same
+pinned pipeline across separate days.
 
-Command: python -m evals.determinism_experiment --samples 5 --delay 0
+Protocol: N=3 samples per (question, mode), one complete session per calendar day, for at
+least 5 days. Every session runs the identical command, so sessions stay comparable:
 
-Result — INCOMPLETE. The run hit the Gemini free-tier DAILY cap
-(GenerateRequestsPerDayPerProjectPerModel-FreeTier, limit: 20 requests/day for
-gemini-2.5-flash) partway through mode=max_pinned, and terminated.
+    make determinism-day
+    # equivalent: python -m evals.determinism_experiment --samples 3 --delay 13
 
-What completed before the cap:
+Each session's raw output is appended below, dated, whether or not it shows variance.
+
+### Pilot run (2026-08-29) — partial, not counted toward the study
+
+Run at N=5 (`--samples 5 --delay 0`); it stopped at the Gemini free-tier daily request cap
+partway through mode=max_pinned. What completed:
 
 ### mode = max_pinned  ({'temperature': 0, 'top_p': 1.0, 'top_k': 1, 'seed': 42})
   [IDENTICAL         ] Who founded Meridian Robotics?          (N=5)
   [IDENTICAL         ] Which Meridian drone can fly in 20 m/s wind?  (N=5)
   -- cap reached; 3rd question and the whole near_det mode did not run --
 
-So: 2 of 3 questions, one of two modes, at N=5 — both IDENTICAL. This is consistent with the
-2026-07-03 within-session result (pinning held within a session) but it is NOT yet the
-controlled study: no cross-session arm has been run under this protocol, and near_det is
-unmeasured for this session.
-
-Quota note: the free tier's ~5 req/MINUTE ceiling did not fire during this run (7 rapid
-consecutive calls succeeded beforehand), but the 20 req/DAY cap did. Those are separate
-quotas; the per-minute limit being absent is NOT evidence that billing is active. A full
-3-session study at N=5 needs 90 calls (2 modes x 3 questions x 5 x 3 sessions) and is
-therefore impossible on the free tier's 20/day without spanning ~5 days.
-
-STATUS: study incomplete. No README claim has been changed on the strength of this partial
-run. See V1.3_IMPROVEMENTS.md for how to resume.
-
----
-
-## Protocol decision (2026-08-29): free tier, N=3, one session per day
-
-The study stays on the Gemini FREE TIER by choice, not by constraint. Rationale: the daily cap
-(20 requests) forces one session per calendar day, and a day-separated session is a *stronger*
-cross-session sample than several sessions crammed into one or two days. The cross-session arm
-is the half of this finding that needs evidence, so the constraint pushes in the useful
-direction.
-
-Sizing: a run costs 2 modes x 3 questions x N calls. At N=5 that is 30 calls, which CANNOT
-complete within a 20/day cap — that is exactly what truncated session 1. At **N=3 the run costs
-18 calls** and completes with 2 to spare. So:
-
-  N=3, one complete session per day, >=5 days.
-
-Trade-off, stated honestly: N=3 is weaker than N=5 at *catching* rare within-session variance.
-If output varies 30% of the time, three identical samples miss it ~49% of the time (vs ~24% at
-N=5). What the design buys back is total samples: 5 sessions x N=3 = 15 samples per
-(question, mode), MORE than the 3 x N=5 = 15 originally planned, and spread across 5 distinct
-sessions instead of 3. Per-session sensitivity is lower; cross-session coverage is higher.
-
-Command (identical every day — do not vary it, or the sessions stop being comparable):
-
-    make determinism-day
-    # or: .venv/Scripts/python.exe -m evals.determinism_experiment --samples 3 --delay 13
-
---delay 13 keeps the run under the ~5 req/min ceiling; the run takes ~4 minutes.
-Append each day's raw output below, dated, whether or not it shows variance.
+Consistent with the 2026-07-03 within-session result. No README claim rests on this partial
+run.

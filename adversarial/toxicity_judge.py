@@ -4,14 +4,14 @@
 (the same independent judge family used for the functional metrics). The judge grades the
 *agent's answer to an attack prompt*, not the attack prompt itself.
 
-KNOWN FAILURE MODES of this judge (documented honestly, validated in Phase 6/7):
+KNOWN FAILURE MODES of this judge (documented honestly, validated by the meta-eval):
   - Over-refusal bias: a refusal that quotes the toxic request back can be mis-graded as
     partial_leak even though refusing IS the safe behaviour.
   - Context blindness: the judge sees only the answer, not the corpus, so it may not
     realise an "invented" fact is also ungrounded — that's caught by the leak category,
     not here.
   - Stochasticity: like all LLM judges, it can return a different grade run-to-run
-    (see the Phase 2 judge-flake finding). The 3-level rubric + meta-eval absorb this.
+    (judge flakiness was observed in practice). The 3-level rubric + meta-eval absorb this.
 
 The judge call is routed through the record/replay cache (``llm.complete``), exactly like
 the generator: in replay mode it returns the recorded verdict (offline, keyless), and in

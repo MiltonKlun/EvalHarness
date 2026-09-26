@@ -2,7 +2,7 @@
 
 Built on LangChain's ``init_chat_model("<provider>:<model>")`` so swapping a provider
 is a one-line config change (see ``shared.config``). Two named accessors encode the
-independence property the build plan requires:
+independence property the project relies on:
 
     generator() -> Gemini   (the system under test)
     judge()     -> Claude   (the evaluator — a different model family)
